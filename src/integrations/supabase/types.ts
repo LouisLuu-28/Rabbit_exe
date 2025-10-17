@@ -64,8 +64,10 @@ export type Database = {
           created_at: string | null
           current_stock: number
           id: string
+          last_purchase_date: string | null
           min_stock: number
           name: string
+          supplier_info: string | null
           unit: string
           updated_at: string | null
           user_id: string
@@ -75,8 +77,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number
           id?: string
+          last_purchase_date?: string | null
           min_stock?: number
           name: string
+          supplier_info?: string | null
           unit: string
           updated_at?: string | null
           user_id: string
@@ -86,8 +90,10 @@ export type Database = {
           created_at?: string | null
           current_stock?: number
           id?: string
+          last_purchase_date?: string | null
           min_stock?: number
           name?: string
+          supplier_info?: string | null
           unit?: string
           updated_at?: string | null
           user_id?: string
@@ -102,29 +108,74 @@ export type Database = {
           },
         ]
       }
+      menu_item_ingredients: {
+        Row: {
+          created_at: string | null
+          id: string
+          ingredient_id: string
+          menu_item_id: string
+          quantity_needed: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          ingredient_id: string
+          menu_item_id: string
+          quantity_needed: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          ingredient_id?: string
+          menu_item_id?: string
+          quantity_needed?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "menu_item_ingredients_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "menu_item_ingredients_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_items: {
         Row: {
+          category: string | null
           created_at: string | null
           description: string | null
           id: string
+          is_available: boolean | null
           name: string
           price: number
           updated_at: string | null
           user_id: string
         }
         Insert: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_available?: boolean | null
           name: string
           price?: number
           updated_at?: string | null
           user_id: string
         }
         Update: {
+          category?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
+          is_available?: boolean | null
           name?: string
           price?: number
           updated_at?: string | null
@@ -140,10 +191,58 @@ export type Database = {
           },
         ]
       }
+      order_items: {
+        Row: {
+          created_at: string | null
+          id: string
+          menu_item_id: string
+          order_id: string
+          quantity: number
+          subtotal: number
+          unit_price: number
+        }
+        Insert: {
+          created_at?: string | null
+          id?: string
+          menu_item_id: string
+          order_id: string
+          quantity?: number
+          subtotal: number
+          unit_price: number
+        }
+        Update: {
+          created_at?: string | null
+          id?: string
+          menu_item_id?: string
+          order_id?: string
+          quantity?: number
+          subtotal?: number
+          unit_price?: number
+        }
+        Relationships: [
+          {
+            foreignKeyName: "order_items_menu_item_id_fkey"
+            columns: ["menu_item_id"]
+            isOneToOne: false
+            referencedRelation: "menu_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "order_items_order_id_fkey"
+            columns: ["order_id"]
+            isOneToOne: false
+            referencedRelation: "orders"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       orders: {
         Row: {
           created_at: string | null
           customer_name: string
+          customer_phone: string | null
+          delivery_address: string | null
+          expected_delivery_date: string | null
           id: string
           notes: string | null
           order_date: string
@@ -155,6 +254,9 @@ export type Database = {
         Insert: {
           created_at?: string | null
           customer_name: string
+          customer_phone?: string | null
+          delivery_address?: string | null
+          expected_delivery_date?: string | null
           id?: string
           notes?: string | null
           order_date?: string
@@ -166,6 +268,9 @@ export type Database = {
         Update: {
           created_at?: string | null
           customer_name?: string
+          customer_phone?: string | null
+          delivery_address?: string | null
+          expected_delivery_date?: string | null
           id?: string
           notes?: string | null
           order_date?: string
