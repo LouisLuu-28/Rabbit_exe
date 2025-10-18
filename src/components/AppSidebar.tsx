@@ -2,6 +2,7 @@ import { Home, ShoppingCart, CalendarDays, Package, DollarSign, User, LogOut } f
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import rabbitLogo from "@/assets/rabbit-logo.jpg";
 import {
   Sidebar,
   SidebarContent,
@@ -49,11 +50,9 @@ export function AppSidebar() {
         <div className="p-4 flex items-center gap-2">
           {!collapsed && (
             <>
-              <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
-                E
-              </div>
+              <img src={rabbitLogo} alt="Rabbit Logo" className="w-10 h-10 rounded-full object-cover" />
               <div>
-                <h2 className="font-bold text-lg">EMS Pro</h2>
+                <h2 className="font-bold text-lg">Rabbit EMS System</h2>
                 <p className="text-xs text-muted-foreground">Quản lý doanh nghiệp</p>
               </div>
             </>

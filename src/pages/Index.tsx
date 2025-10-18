@@ -1,6 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ChefHat, BarChart3, Package, FileText } from "lucide-react";
+import rabbitLogo from "@/assets/rabbit-logo.jpg";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -33,11 +34,9 @@ const Index = () => {
       <header className="border-b bg-card/50 backdrop-blur-sm">
         <div className="container mx-auto px-4 py-4 flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-lg">
-              E
-            </div>
+            <img src={rabbitLogo} alt="Rabbit Logo" className="w-10 h-10 rounded-full object-cover" />
             <div>
-              <h1 className="font-bold text-xl">EMS Pro</h1>
+              <h1 className="font-bold text-xl">Rabbit EMS System</h1>
               <p className="text-xs text-muted-foreground">Quản lý doanh nghiệp</p>
             </div>
           </div>
@@ -89,7 +88,7 @@ const Index = () => {
 
       <footer className="border-t mt-16 py-8">
         <div className="container mx-auto px-4 text-center text-muted-foreground">
-          <p>&copy; 2025 EMS Pro. Tất cả quyền được bảo lưu.</p>
+          <p>&copy; 2025 Rabbit EMS System. Tất cả quyền được bảo lưu.</p>
         </div>
       </footer>
     </div>

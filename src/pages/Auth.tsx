@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import rabbitLogo from "@/assets/rabbit-logo.jpg";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -117,10 +118,8 @@ const Auth = () => {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-primary/5 via-background to-secondary/5 p-4">
       <Card className="w-full max-w-md shadow-[var(--shadow-soft)]">
         <CardHeader className="text-center">
-          <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-gradient-to-br from-primary to-accent flex items-center justify-center text-white font-bold text-2xl">
-            E
-          </div>
-          <CardTitle className="text-2xl">EMS Pro</CardTitle>
+          <img src={rabbitLogo} alt="Rabbit Logo" className="w-16 h-16 mx-auto mb-4 rounded-full object-cover" />
+          <CardTitle className="text-2xl">Rabbit EMS System</CardTitle>
           <CardDescription>Hệ thống Quản lý Doanh nghiệp</CardDescription>
         </CardHeader>
         <CardContent>

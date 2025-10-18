@@ -174,7 +174,7 @@ const Dashboard = () => {
     <div className="p-6 space-y-6">
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
-        <p className="text-muted-foreground">Chào mừng bạn đến với EMS Pro</p>
+        <p className="text-muted-foreground">Chào mừng bạn đến với Rabbit EMS System</p>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
