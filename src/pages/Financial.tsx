@@ -8,6 +8,9 @@ import { DollarSign, TrendingDown, TrendingUp } from "lucide-react";
 const Financial = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
+  const [revenue, setRevenue] = useState(0);
+  const [expenses, setExpenses] = useState(0);
+  const [profit, setProfit] = useState(0);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -16,11 +19,51 @@ const Financial = () => {
         navigate("/auth");
       } else {
         setLoading(false);
+        fetchFinancialData();
       }
     };
 
     checkAuth();
   }, [navigate]);
+
+  const fetchFinancialData = async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (!user) return;
+
+    // Get current month date range
+    const now = new Date();
+    const firstDayOfMonth = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().split('T')[0];
+    const lastDayOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0).toISOString().split('T')[0];
+
+    // Fetch financial records
+    const { data: records } = await supabase
+      .from("financial_records")
+      .select("*")
+      .eq("user_id", user.id)
+      .gte("record_date", firstDayOfMonth)
+      .lte("record_date", lastDayOfMonth);
+
+    const revenueAmount = records?.filter(r => r.type === 'revenue').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+    const expenseAmount = records?.filter(r => r.type === 'expense').reduce((sum, r) => sum + Number(r.amount), 0) || 0;
+
+    // Also add revenue from orders
+    const { data: orders } = await supabase
+      .from("orders")
+      .select("total_amount")
+      .eq("user_id", user.id)
+      .gte("order_date", firstDayOfMonth)
+      .lte("order_date", lastDayOfMonth)
+      .neq("status", "cancelled");
+
+    const ordersRevenue = orders?.reduce((sum, o) => sum + Number(o.total_amount), 0) || 0;
+
+    const totalRevenue = revenueAmount + ordersRevenue;
+    const totalProfit = totalRevenue - expenseAmount;
+
+    setRevenue(totalRevenue);
+    setExpenses(expenseAmount);
+    setProfit(totalProfit);
+  };
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
@@ -40,7 +83,7 @@ const Financial = () => {
             <TrendingUp className="h-4 w-4 text-success" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-success">0đ</div>
+            <div className="text-2xl font-bold text-success">{revenue.toLocaleString()}₫</div>
             <p className="text-xs text-muted-foreground mt-1">Tháng này</p>
           </CardContent>
         </Card>
@@ -51,7 +94,7 @@ const Financial = () => {
             <TrendingDown className="h-4 w-4 text-destructive" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-destructive">0đ</div>
+            <div className="text-2xl font-bold text-destructive">{expenses.toLocaleString()}₫</div>
             <p className="text-xs text-muted-foreground mt-1">Tháng này</p>
           </CardContent>
         </Card>
@@ -62,7 +105,7 @@ const Financial = () => {
             <DollarSign className="h-4 w-4 text-primary" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-primary">0đ</div>
+            <div className="text-2xl font-bold text-primary">{profit.toLocaleString()}₫</div>
             <p className="text-xs text-muted-foreground mt-1">Tháng này</p>
           </CardContent>
         </Card>

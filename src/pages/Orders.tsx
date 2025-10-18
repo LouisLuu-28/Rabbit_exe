@@ -7,6 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Plus, Eye } from "lucide-react";
 import { AddOrderDialog } from "@/components/orders/AddOrderDialog";
+import { OrderDetailDialog } from "@/components/orders/OrderDetailDialog";
 
 interface Order {
   id: string;
@@ -22,6 +23,8 @@ const Orders = () => {
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [detailDialogOpen, setDetailDialogOpen] = useState(false);
+  const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -122,7 +125,14 @@ const Orders = () => {
                     <TableCell className="font-semibold">{order.total_amount.toLocaleString()}₫</TableCell>
                     <TableCell>{getStatusBadge(order.status)}</TableCell>
                     <TableCell>
-                      <Button variant="ghost" size="sm">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedOrderId(order.id);
+                          setDetailDialogOpen(true);
+                        }}
+                      >
                         <Eye className="h-4 w-4" />
                       </Button>
                     </TableCell>
@@ -137,6 +147,13 @@ const Orders = () => {
       <AddOrderDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onSuccess={fetchOrders}
+      />
+      
+      <OrderDetailDialog
+        open={detailDialogOpen}
+        onOpenChange={setDetailDialogOpen}
+        orderId={selectedOrderId}
         onSuccess={fetchOrders}
       />
     </div>

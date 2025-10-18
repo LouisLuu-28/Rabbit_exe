@@ -5,8 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package, AlertTriangle } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
+import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
 
 interface Ingredient {
   id: string;
@@ -22,6 +23,8 @@ const Inventory = () => {
   const [loading, setLoading] = useState(true);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedIngredientId, setSelectedIngredientId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -129,6 +132,7 @@ const Inventory = () => {
                   <TableHead>Giá / Đơn Vị</TableHead>
                   <TableHead>Tổng Giá Trị</TableHead>
                   <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
@@ -163,6 +167,18 @@ const Inventory = () => {
                           <Badge variant="default">Đủ hàng</Badge>
                         )}
                       </TableCell>
+                      <TableCell>
+                        <Button 
+                          variant="ghost" 
+                          size="sm"
+                          onClick={() => {
+                            setSelectedIngredientId(ingredient.id);
+                            setEditDialogOpen(true);
+                          }}
+                        >
+                          <Pencil className="h-4 w-4" />
+                        </Button>
+                      </TableCell>
                     </TableRow>
                   );
                 })}
@@ -175,6 +191,13 @@ const Inventory = () => {
       <AddIngredientDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onSuccess={fetchIngredients}
+      />
+      
+      <EditIngredientDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        ingredientId={selectedIngredientId}
         onSuccess={fetchIngredients}
       />
     </div>

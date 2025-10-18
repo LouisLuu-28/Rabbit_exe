@@ -6,6 +6,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Plus, CalendarDays } from "lucide-react";
 import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
+import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
 
 interface MenuItem {
   id: string;
@@ -21,6 +22,8 @@ const MenuPlanning = () => {
   const [loading, setLoading] = useState(true);
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
+  const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -117,7 +120,14 @@ const MenuPlanning = () => {
                   <span className="text-2xl font-bold text-primary">
                     {item.price.toLocaleString()}₫
                   </span>
-                  <Button variant="outline" size="sm">
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={() => {
+                      setSelectedMenuItemId(item.id);
+                      setEditDialogOpen(true);
+                    }}
+                  >
                     Chỉnh sửa
                   </Button>
                 </div>
@@ -130,6 +140,13 @@ const MenuPlanning = () => {
       <AddMenuItemDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onSuccess={fetchMenuItems}
+      />
+      
+      <EditMenuItemDialog
+        open={editDialogOpen}
+        onOpenChange={setEditDialogOpen}
+        menuItemId={selectedMenuItemId}
         onSuccess={fetchMenuItems}
       />
     </div>
