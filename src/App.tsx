@@ -68,8 +68,8 @@ const App = () => {
       <TooltipProvider>
         <Toaster />
         <Sonner />
-        {showTutorial && <Tutorial onComplete={handleTutorialComplete} />}
         <BrowserRouter>
+          {showTutorial && <Tutorial onComplete={handleTutorialComplete} />}
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
