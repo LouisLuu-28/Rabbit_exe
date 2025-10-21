@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import Joyride, { CallBackProps, STATUS, Step } from "react-joyride";
+import Joyride, { CallBackProps, STATUS, Step, ACTIONS, EVENTS } from "react-joyride";
 import { useNavigate, useLocation } from "react-router-dom";
 
 interface TutorialProps {
@@ -87,50 +87,44 @@ export function Tutorial({ onComplete }: TutorialProps) {
   ];
 
   useEffect(() => {
-    // Start tutorial after a short delay
-    const timer = setTimeout(() => setRun(true), 500);
+    // Ensure we start on dashboard
+    if (location.pathname !== "/dashboard") {
+      navigate("/dashboard");
+    }
+    // Start tutorial after ensuring we're on the right page
+    const timer = setTimeout(() => setRun(true), 1000);
     return () => clearTimeout(timer);
   }, []);
 
-  // Navigate based on step
+  // Navigate based on step with delay to ensure DOM is ready
   useEffect(() => {
     if (!run) return;
 
-    if (stepIndex === 1 && location.pathname !== "/inventory") {
-      // Don't navigate yet, wait for user to click
-    } else if (stepIndex === 2 && location.pathname !== "/inventory") {
-      navigate("/inventory");
-    } else if (stepIndex === 4 && location.pathname !== "/menu-planning") {
-      // Don't navigate yet
+    const navigateWithDelay = (path: string) => {
+      setTimeout(() => navigate(path), 300);
+    };
+
+    if (stepIndex === 2 && location.pathname !== "/inventory") {
+      navigateWithDelay("/inventory");
     } else if (stepIndex === 5 && location.pathname !== "/menu-planning") {
-      navigate("/menu-planning");
-    } else if (stepIndex === 7 && location.pathname !== "/orders") {
-      // Don't navigate yet
+      navigateWithDelay("/menu-planning");
     } else if (stepIndex === 8 && location.pathname !== "/orders") {
-      navigate("/orders");
+      navigateWithDelay("/orders");
     } else if (stepIndex === 10 && location.pathname !== "/dashboard") {
-      navigate("/dashboard");
+      navigateWithDelay("/dashboard");
     }
   }, [stepIndex, run, location.pathname, navigate]);
 
   const handleJoyrideCallback = (data: CallBackProps) => {
-    const { status, index, type, action } = data;
+    const { status, index, type, action, lifecycle } = data;
 
     if ([STATUS.FINISHED, STATUS.SKIPPED].includes(status as any)) {
       setRun(false);
       onComplete();
-    } else if (type === "step:after") {
-      // Navigate when clicking next on navigation steps
-      if (index === 1 && action === "next") {
-        navigate("/inventory");
-      } else if (index === 4 && action === "next") {
-        navigate("/menu-planning");
-      } else if (index === 7 && action === "next") {
-        navigate("/orders");
-      } else if (index === 10 && action === "next") {
-        navigate("/dashboard");
-      }
-      setStepIndex(index + 1);
+      navigate("/dashboard");
+    } else if (type === EVENTS.STEP_AFTER || type === EVENTS.TARGET_NOT_FOUND) {
+      // Move to next step
+      setStepIndex(index + (action === ACTIONS.PREV ? -1 : 1));
     }
   };
 
@@ -142,6 +136,9 @@ export function Tutorial({ onComplete }: TutorialProps) {
       continuous
       showProgress
       showSkipButton
+      disableOverlayClose
+      disableCloseOnEsc={false}
+      spotlightClicks={false}
       callback={handleJoyrideCallback}
       styles={{
         options: {
