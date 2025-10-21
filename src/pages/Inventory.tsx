@@ -70,7 +70,7 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold mb-2">Kho Nguyên Liệu</h1>
           <p className="text-muted-foreground">Quản lý và theo dõi tồn kho nguyên liệu</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-ingredient">
           <Plus className="h-4 w-4" />
           Thêm Nguyên Liệu
         </Button>
@@ -115,7 +115,7 @@ const Inventory = () => {
             Tất cả nguyên liệu trong kho - Tổng giá trị: {totalValue.toLocaleString()}₫
           </CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent data-tutorial="ingredient-list">
           {ingredients.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />

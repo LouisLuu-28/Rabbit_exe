@@ -77,7 +77,7 @@ const MenuPlanning = () => {
           <h1 className="text-3xl font-bold mb-2">Danh Sách Món Ăn</h1>
           <p className="text-muted-foreground">Quản lý tất cả món ăn trong thực đơn</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-menu-item">
           <Plus className="h-4 w-4" />
           Thêm Món
         </Button>
@@ -94,7 +94,7 @@ const MenuPlanning = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
+        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-tutorial="menu-list">
           {menuItems.map((item) => (
             <Card key={item.id}>
               <CardHeader>

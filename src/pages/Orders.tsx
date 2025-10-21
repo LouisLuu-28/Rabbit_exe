@@ -84,7 +84,7 @@ const Orders = () => {
           <h1 className="text-3xl font-bold mb-2">Quản Lý Đơn Hàng</h1>
           <p className="text-muted-foreground">Theo dõi và quản lý tất cả đơn hàng</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)}>
+        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-order">
           <Plus className="h-4 w-4" />
           Thêm Đơn Hàng
         </Button>
@@ -95,7 +95,7 @@ const Orders = () => {
           <CardTitle>Danh Sách Đơn Hàng</CardTitle>
           <CardDescription>Tất cả đơn hàng của bạn</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent data-tutorial="order-list">
           {orders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <div className="text-6xl mb-4">📦</div>

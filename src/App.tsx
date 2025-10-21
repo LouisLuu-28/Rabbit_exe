@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -6,6 +6,8 @@ import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
+import { Tutorial } from "@/components/Tutorial";
+import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
 import ForgotPassword from "./pages/ForgotPassword";
@@ -35,12 +37,39 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
   </SidebarProvider>
 );
 
-const App = () => (
-  <QueryClientProvider client={queryClient}>
-    <TooltipProvider>
-      <Toaster />
-      <Sonner />
-      <BrowserRouter>
+const App = () => {
+  const [showTutorial, setShowTutorial] = useState(false);
+
+  useEffect(() => {
+    checkTutorialStatus();
+  }, []);
+
+  const checkTutorialStatus = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      const tutorialCompleted = localStorage.getItem(`tutorial_completed_${session.user.id}`);
+      if (!tutorialCompleted) {
+        // Delay to ensure user is on dashboard
+        setTimeout(() => setShowTutorial(true), 1000);
+      }
+    }
+  };
+
+  const handleTutorialComplete = async () => {
+    const { data: { session } } = await supabase.auth.getSession();
+    if (session?.user) {
+      localStorage.setItem(`tutorial_completed_${session.user.id}`, "true");
+    }
+    setShowTutorial(false);
+  };
+
+  return (
+    <QueryClientProvider client={queryClient}>
+      <TooltipProvider>
+        <Toaster />
+        <Sonner />
+        {showTutorial && <Tutorial onComplete={handleTutorialComplete} />}
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Index />} />
           <Route path="/auth" element={<Auth />} />
@@ -57,6 +86,7 @@ const App = () => (
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
-);
+  );
+};
 
 export default App;

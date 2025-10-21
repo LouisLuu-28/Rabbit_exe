@@ -63,23 +63,36 @@ export function AppSidebar() {
           <SidebarGroupLabel>Menu Chính</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {menuItems.map((item) => (
-                <SidebarMenuItem key={item.url}>
-                  <SidebarMenuButton asChild>
-                    <NavLink
-                      to={item.url}
-                      className={({ isActive }) =>
-                        isActive
-                          ? "bg-primary/10 text-primary font-medium"
-                          : "hover:bg-muted/50"
-                      }
-                    >
-                      <item.icon className="h-5 w-5" />
-                      {!collapsed && <span>{item.title}</span>}
-                    </NavLink>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+              {menuItems.map((item) => {
+                const getTutorialAttr = () => {
+                  if (item.url === "/dashboard") return "dashboard-nav";
+                  if (item.url === "/orders") return "orders-nav";
+                  if (item.url === "/menu-planning") return "menu-nav";
+                  if (item.url === "/inventory") return "inventory-nav";
+                  if (item.url === "/financial") return "financial-nav";
+                  if (item.url === "/account") return "account-nav";
+                  return undefined;
+                };
+
+                return (
+                  <SidebarMenuItem key={item.url}>
+                    <SidebarMenuButton asChild>
+                      <NavLink
+                        to={item.url}
+                        data-tutorial={getTutorialAttr()}
+                        className={({ isActive }) =>
+                          isActive
+                            ? "bg-primary/10 text-primary font-medium"
+                            : "hover:bg-muted/50"
+                        }
+                      >
+                        <item.icon className="h-5 w-5" />
+                        {!collapsed && <span>{item.title}</span>}
+                      </NavLink>
+                    </SidebarMenuButton>
+                  </SidebarMenuItem>
+                );
+              })}
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
