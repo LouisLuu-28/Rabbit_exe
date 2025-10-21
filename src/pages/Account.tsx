@@ -104,7 +104,7 @@ const Account = () => {
               />
             </div>
 
-            <Button type="submit" disabled={loading}>
+            <Button type="submit" disabled={loading} data-tutorial="account-update">
               {loading ? "Đang cập nhật..." : "Cập Nhật Thông Tin"}
             </Button>
           </form>
@@ -117,7 +117,7 @@ const Account = () => {
           <CardDescription>Bạn có thể đổi mật khẩu bằng cách đăng xuất và sử dụng chức năng "Quên mật khẩu"</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => navigate("/forgot-password")}>
+          <Button variant="outline" onClick={() => navigate("/forgot-password")} data-tutorial="account-change-password">
             Đổi Mật Khẩu
           </Button>
         </CardContent>

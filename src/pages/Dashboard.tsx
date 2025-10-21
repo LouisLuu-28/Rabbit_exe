@@ -177,7 +177,7 @@ const Dashboard = () => {
         <p className="text-muted-foreground">Chào mừng bạn đến với Rabbit EMS System</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
+      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tutorial="dashboard-stats">
         {statsDisplay.map((stat) => (
           <Card key={stat.title} className="transition-shadow hover:shadow-[var(--shadow-hover)]">
             <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
@@ -198,7 +198,7 @@ const Dashboard = () => {
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
-        <Card>
+        <Card data-tutorial="dashboard-recent-orders">
           <CardHeader>
             <CardTitle>Đơn Hàng Gần Đây</CardTitle>
             <CardDescription>Các đơn hàng mới nhất của bạn</CardDescription>
@@ -229,7 +229,7 @@ const Dashboard = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card data-tutorial="dashboard-low-stock">
           <CardHeader>
             <CardTitle>Nguyên Liệu Sắp Hết</CardTitle>
             <CardDescription>Cần mua thêm trong tuần này</CardDescription>

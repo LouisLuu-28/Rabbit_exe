@@ -76,8 +76,8 @@ const Financial = () => {
         <p className="text-muted-foreground">Theo dõi doanh thu, chi phí và lợi nhuận</p>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20">
+      <div className="grid gap-4 md:grid-cols-3" data-tutorial="financial-stats">
+        <Card className="bg-gradient-to-br from-success/10 to-success/5 border-success/20" data-tutorial="financial-revenue">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Doanh Thu</CardTitle>
             <TrendingUp className="h-4 w-4 text-success" />
@@ -88,7 +88,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20">
+        <Card className="bg-gradient-to-br from-destructive/10 to-destructive/5 border-destructive/20" data-tutorial="financial-expenses">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Chi Phí</CardTitle>
             <TrendingDown className="h-4 w-4 text-destructive" />
@@ -99,7 +99,7 @@ const Financial = () => {
           </CardContent>
         </Card>
 
-        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+        <Card className="bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20" data-tutorial="financial-profit">
           <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0">
             <CardTitle className="text-sm font-medium">Lợi Nhuận</CardTitle>
             <DollarSign className="h-4 w-4 text-primary" />
@@ -111,7 +111,7 @@ const Financial = () => {
         </Card>
       </div>
 
-      <Card>
+      <Card data-tutorial="financial-details">
         <CardHeader>
           <CardTitle>Chi Tiết Tài Chính</CardTitle>
           <CardDescription>Xem theo thời gian</CardDescription>

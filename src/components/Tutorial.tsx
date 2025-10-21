@@ -19,9 +19,31 @@ export function Tutorial({ onComplete }: TutorialProps) {
       placement: "center",
       disableBeacon: true,
     },
+    // Bước 1: Dashboard
+    {
+      target: '[data-tutorial="dashboard-nav"]',
+      content: "Bước 1: Bắt đầu với Dashboard - nơi hiển thị tổng quan về doanh nghiệp của bạn.",
+      placement: "right",
+    },
+    {
+      target: '[data-tutorial="dashboard-stats"]',
+      content: "Đây là các chỉ số quan trọng: Tổng đơn hàng, Nguyên liệu, Doanh thu và Lợi nhuận.",
+      placement: "bottom",
+    },
+    {
+      target: '[data-tutorial="dashboard-recent-orders"]',
+      content: "Xem các đơn hàng gần đây nhất tại đây.",
+      placement: "top",
+    },
+    {
+      target: '[data-tutorial="dashboard-low-stock"]',
+      content: "Theo dõi nguyên liệu sắp hết để kịp thời bổ sung.",
+      placement: "top",
+    },
+    // Bước 2: Kho Nguyên Liệu
     {
       target: '[data-tutorial="inventory-nav"]',
-      content: "Bước 1: Bắt đầu bằng việc quản lý kho nguyên liệu. Click vào đây để xem kho nguyên liệu.",
+      content: "Bước 2: Quản lý kho nguyên liệu. Click vào đây để xem kho.",
       placement: "right",
     },
     {
@@ -31,12 +53,13 @@ export function Tutorial({ onComplete }: TutorialProps) {
     },
     {
       target: '[data-tutorial="ingredient-list"]',
-      content: "Đây là danh sách nguyên liệu của bạn. Bạn có thể chỉnh sửa, xóa và theo dõi tồn kho tại đây.",
+      content: "Danh sách nguyên liệu cho phép bạn chỉnh sửa, xóa và theo dõi tồn kho. Bạn có thể xem trạng thái hàng tồn kho và giá trị của từng nguyên liệu.",
       placement: "top",
     },
+    // Bước 3: Thực Đơn Tuần
     {
       target: '[data-tutorial="menu-nav"]',
-      content: "Bước 2: Tiếp theo, hãy tạo thực đơn. Click vào đây để quản lý thực đơn.",
+      content: "Bước 3: Quản lý thực đơn tuần. Click vào đây để xem các món ăn.",
       placement: "right",
     },
     {
@@ -46,12 +69,13 @@ export function Tutorial({ onComplete }: TutorialProps) {
     },
     {
       target: '[data-tutorial="menu-list"]',
-      content: "Quản lý các món ăn, giá cả và trạng thái sẵn sàng phục vụ.",
+      content: "Danh sách món ăn cho phép bạn chỉnh sửa thông tin món, cập nhật giá cả, thay đổi trạng thái còn hàng/hết hàng.",
       placement: "top",
     },
+    // Bước 4: Đơn Hàng
     {
       target: '[data-tutorial="orders-nav"]',
-      content: "Bước 3: Quản lý đơn hàng. Click vào đây để xem đơn hàng.",
+      content: "Bước 4: Quản lý đơn hàng. Click vào đây để xem tất cả đơn hàng.",
       placement: "right",
     },
     {
@@ -61,23 +85,40 @@ export function Tutorial({ onComplete }: TutorialProps) {
     },
     {
       target: '[data-tutorial="order-list"]',
-      content: "Theo dõi và cập nhật trạng thái đơn hàng của khách hàng.",
+      content: "Danh sách đơn hàng cho phép bạn xem chi tiết, cập nhật trạng thái đơn hàng (Chờ xử lý, Đang chuẩn bị, Sẵn sàng, Đã giao).",
       placement: "top",
     },
-    {
-      target: '[data-tutorial="dashboard-nav"]',
-      content: "Dashboard hiển thị tổng quan về doanh nghiệp của bạn.",
-      placement: "right",
-    },
+    // Bước 5: Tài Chính
     {
       target: '[data-tutorial="financial-nav"]',
-      content: "Báo cáo tài chính giúp bạn theo dõi doanh thu và chi phí.",
+      content: "Bước 5: Báo cáo tài chính. Click vào đây để xem tình hình tài chính.",
       placement: "right",
     },
     {
+      target: '[data-tutorial="financial-stats"]',
+      content: "Xem tổng quan về doanh thu, chi phí và lợi nhuận của tháng.",
+      placement: "bottom",
+    },
+    {
+      target: '[data-tutorial="financial-details"]',
+      content: "Chi tiết tài chính theo tuần, tháng hoặc năm để theo dõi xu hướng kinh doanh.",
+      placement: "top",
+    },
+    // Bước 6: Tài Khoản
+    {
       target: '[data-tutorial="account-nav"]',
-      content: "Quản lý thông tin tài khoản của bạn tại đây.",
+      content: "Bước 6: Quản lý tài khoản. Click vào đây để xem thông tin cá nhân.",
       placement: "right",
+    },
+    {
+      target: '[data-tutorial="account-update"]',
+      content: "Cập nhật thông tin cá nhân như họ tên tại đây.",
+      placement: "bottom",
+    },
+    {
+      target: '[data-tutorial="account-change-password"]',
+      content: "Nhấn vào đây để đổi mật khẩu của bạn.",
+      placement: "bottom",
     },
     {
       target: "body",
@@ -104,13 +145,29 @@ export function Tutorial({ onComplete }: TutorialProps) {
       setTimeout(() => navigate(path), 300);
     };
 
-    if (stepIndex === 2 && location.pathname !== "/inventory") {
+    // Bước 1: Stay on dashboard (steps 1-4)
+    // Bước 2: Navigate to inventory (steps 5-7)
+    if (stepIndex === 5 && location.pathname !== "/inventory") {
       navigateWithDelay("/inventory");
-    } else if (stepIndex === 5 && location.pathname !== "/menu-planning") {
+    }
+    // Bước 3: Navigate to menu planning (steps 8-10)
+    else if (stepIndex === 8 && location.pathname !== "/menu-planning") {
       navigateWithDelay("/menu-planning");
-    } else if (stepIndex === 8 && location.pathname !== "/orders") {
+    }
+    // Bước 4: Navigate to orders (steps 11-13)
+    else if (stepIndex === 11 && location.pathname !== "/orders") {
       navigateWithDelay("/orders");
-    } else if (stepIndex === 10 && location.pathname !== "/dashboard") {
+    }
+    // Bước 5: Navigate to financial (steps 14-16)
+    else if (stepIndex === 14 && location.pathname !== "/financial") {
+      navigateWithDelay("/financial");
+    }
+    // Bước 6: Navigate to account (steps 17-19)
+    else if (stepIndex === 17 && location.pathname !== "/account") {
+      navigateWithDelay("/account");
+    }
+    // Navigate back to dashboard at end (step 20)
+    else if (stepIndex === 20 && location.pathname !== "/dashboard") {
       navigateWithDelay("/dashboard");
     }
   }, [stepIndex, run, location.pathname, navigate]);
