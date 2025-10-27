@@ -60,6 +60,8 @@ export type Database = {
       }
       ingredients: {
         Row: {
+          category: string | null
+          code: string | null
           cost_per_unit: number
           created_at: string | null
           current_stock: number
@@ -73,6 +75,8 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          category?: string | null
+          code?: string | null
           cost_per_unit?: number
           created_at?: string | null
           current_stock?: number
@@ -86,6 +90,8 @@ export type Database = {
           user_id: string
         }
         Update: {
+          category?: string | null
+          code?: string | null
           cost_per_unit?: number
           created_at?: string | null
           current_stock?: number
@@ -150,6 +156,7 @@ export type Database = {
       menu_items: {
         Row: {
           category: string | null
+          code: string | null
           created_at: string | null
           description: string | null
           id: string
@@ -161,6 +168,7 @@ export type Database = {
         }
         Insert: {
           category?: string | null
+          code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -172,6 +180,7 @@ export type Database = {
         }
         Update: {
           category?: string | null
+          code?: string | null
           created_at?: string | null
           description?: string | null
           id?: string
@@ -238,6 +247,7 @@ export type Database = {
       }
       orders: {
         Row: {
+          code: string | null
           created_at: string | null
           customer_name: string
           customer_phone: string | null
@@ -252,6 +262,7 @@ export type Database = {
           user_id: string
         }
         Insert: {
+          code?: string | null
           created_at?: string | null
           customer_name: string
           customer_phone?: string | null
@@ -266,6 +277,7 @@ export type Database = {
           user_id: string
         }
         Update: {
+          code?: string | null
           created_at?: string | null
           customer_name?: string
           customer_phone?: string | null
@@ -357,7 +369,9 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      generate_ingredient_code: { Args: { p_user_id: string }; Returns: string }
+      generate_menu_item_code: { Args: { p_user_id: string }; Returns: string }
+      generate_order_code: { Args: { p_user_id: string }; Returns: string }
     }
     Enums: {
       [_ in never]: never
