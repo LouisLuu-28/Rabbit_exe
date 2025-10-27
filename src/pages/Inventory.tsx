@@ -5,13 +5,17 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Package, AlertTriangle, Pencil } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Package, AlertTriangle, Pencil, Search } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
 import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
 
 interface Ingredient {
   id: string;
+  code: string;
   name: string;
+  category: string;
   unit: string;
   current_stock: number;
   min_stock: number;
@@ -25,6 +29,8 @@ const Inventory = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedIngredientId, setSelectedIngredientId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -54,6 +60,28 @@ const Inventory = () => {
       setIngredients(data);
     }
   };
+
+  const getCategoryLabel = (category: string) => {
+    const labels: Record<string, string> = {
+      rau_cu: "Rau Củ",
+      thit: "Thịt",
+      ca: "Cá & Hải Sản",
+      gia_vi: "Gia Vị",
+      bot: "Bột",
+      dau: "Dầu Ăn",
+      do_kho: "Đồ Khô",
+      khac: "Khác",
+    };
+    return labels[category] || category;
+  };
+
+  const filteredIngredients = ingredients.filter((ingredient) => {
+    const matchesSearch =
+      ingredient.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      ingredient.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === "all" || ingredient.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
 
   const lowStockCount = ingredients.filter(i => i.current_stock <= i.min_stock).length;
   const outOfStockCount = ingredients.filter(i => i.current_stock === 0).length;
@@ -114,9 +142,36 @@ const Inventory = () => {
           <CardDescription>
             Tất cả nguyên liệu trong kho - Tổng giá trị: {totalValue.toLocaleString()}₫
           </CardDescription>
+          <div className="flex gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo mã hoặc tên nguyên liệu..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterCategory} onValueChange={setFilterCategory}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Lọc theo danh mục" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả danh mục</SelectItem>
+                <SelectItem value="rau_cu">Rau Củ</SelectItem>
+                <SelectItem value="thit">Thịt</SelectItem>
+                <SelectItem value="ca">Cá & Hải Sản</SelectItem>
+                <SelectItem value="gia_vi">Gia Vị</SelectItem>
+                <SelectItem value="bot">Bột</SelectItem>
+                <SelectItem value="dau">Dầu Ăn</SelectItem>
+                <SelectItem value="do_kho">Đồ Khô</SelectItem>
+                <SelectItem value="khac">Khác</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent data-tutorial="ingredient-list">
-          {ingredients.length === 0 ? (
+          {filteredIngredients.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <Package className="h-12 w-12 mx-auto mb-4 opacity-50" />
               <p>Chưa có nguyên liệu nào</p>
@@ -126,7 +181,9 @@ const Inventory = () => {
             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead>Mã NL</TableHead>
                   <TableHead>Tên Nguyên Liệu</TableHead>
+                  <TableHead>Danh Mục</TableHead>
                   <TableHead>Tồn Kho</TableHead>
                   <TableHead>Ngưỡng Tối Thiểu</TableHead>
                   <TableHead>Giá / Đơn Vị</TableHead>
@@ -136,12 +193,16 @@ const Inventory = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {ingredients.map((ingredient) => {
+                {filteredIngredients.map((ingredient) => {
                   const isLowStock = ingredient.current_stock <= ingredient.min_stock;
                   const isOutOfStock = ingredient.current_stock === 0;
                   return (
                     <TableRow key={ingredient.id}>
+                      <TableCell className="font-mono text-sm">{ingredient.code || "-"}</TableCell>
                       <TableCell className="font-medium">{ingredient.name}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{getCategoryLabel(ingredient.category)}</Badge>
+                      </TableCell>
                       <TableCell>
                         {ingredient.current_stock} {ingredient.unit}
                       </TableCell>

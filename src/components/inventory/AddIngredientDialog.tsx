@@ -19,6 +19,7 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
     name: "",
+    category: "rau_cu",
     unit: "kg",
     current_stock: "",
     min_stock: "",
@@ -34,8 +35,13 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Generate code
+    const { data: codeData } = await supabase.rpc('generate_ingredient_code', { p_user_id: user.id });
+    const code = codeData || 'NL-001';
+
     const { error } = await supabase.from("ingredients").insert({
       ...formData,
+      code,
       current_stock: parseFloat(formData.current_stock) || 0,
       min_stock: parseFloat(formData.min_stock) || 0,
       cost_per_unit: parseFloat(formData.cost_per_unit) || 0,
@@ -59,6 +65,7 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
       // Reset form
       setFormData({
         name: "",
+        category: "rau_cu",
         unit: "kg",
         current_stock: "",
         min_stock: "",
@@ -88,6 +95,25 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="category">Danh Mục *</Label>
+              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+                <SelectTrigger>
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="rau_cu">Rau Củ</SelectItem>
+                  <SelectItem value="thit">Thịt</SelectItem>
+                  <SelectItem value="ca">Cá & Hải Sản</SelectItem>
+                  <SelectItem value="gia_vi">Gia Vị</SelectItem>
+                  <SelectItem value="bot">Bột</SelectItem>
+                  <SelectItem value="dau">Dầu Ăn</SelectItem>
+                  <SelectItem value="do_kho">Đồ Khô</SelectItem>
+                  <SelectItem value="khac">Khác</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
 
             <div className="space-y-2">

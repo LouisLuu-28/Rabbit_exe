@@ -124,11 +124,16 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
 
     const totalAmount = calculateTotal();
 
+    // Generate code
+    const { data: codeData } = await supabase.rpc('generate_order_code', { p_user_id: user.id });
+    const code = codeData || 'DH-001';
+
     // Create order
     const { data: order, error: orderError } = await supabase
       .from("orders")
       .insert({
         ...formData,
+        code,
         user_id: user.id,
         total_amount: totalAmount,
       })

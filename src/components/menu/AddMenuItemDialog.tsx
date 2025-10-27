@@ -100,11 +100,16 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
+    // Generate code
+    const { data: codeData } = await supabase.rpc('generate_menu_item_code', { p_user_id: user.id });
+    const code = codeData || 'TD-001';
+
     // Create menu item
     const { data: menuItem, error: menuError } = await supabase
       .from("menu_items")
       .insert({
         ...formData,
+        code,
         price: parseFloat(formData.price) || 0,
         user_id: user.id,
       })

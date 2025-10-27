@@ -21,6 +21,7 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [menuItem, setMenuItem] = useState({
+    code: "",
     name: "",
     description: "",
     price: "",
@@ -47,6 +48,7 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
 
     if (data) {
       setMenuItem({
+        code: data.code || "",
         name: data.name,
         description: data.description || "",
         price: data.price.toString(),
@@ -154,6 +156,16 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
           </DialogHeader>
 
           <form onSubmit={handleSubmit} className="space-y-4">
+            <div>
+              <Label htmlFor="code">Mã Món</Label>
+              <Input
+                id="code"
+                value={menuItem.code}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+
             <div>
               <Label htmlFor="name">Tên Món *</Label>
               <Input

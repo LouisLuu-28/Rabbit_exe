@@ -4,12 +4,15 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Plus, CalendarDays } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Search } from "lucide-react";
 import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
 
 interface MenuItem {
   id: string;
+  code: string;
   name: string;
   description: string;
   price: number;
@@ -24,6 +27,8 @@ const MenuPlanning = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterCategory, setFilterCategory] = useState<string>("all");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -64,11 +69,17 @@ const MenuPlanning = () => {
     return labels[category] || category;
   };
 
+  const filteredMenuItems = menuItems.filter((item) => {
+    const matchesSearch =
+      item.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.name.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesCategory = filterCategory === "all" || item.category === filterCategory;
+    return matchesSearch && matchesCategory;
+  });
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
   }
-
-  const daysOfWeek = ["Thứ 2", "Thứ 3", "Thứ 4", "Thứ 5", "Thứ 6", "Thứ 7", "Chủ Nhật"];
 
   return (
     <div className="p-6 space-y-6">
@@ -83,7 +94,31 @@ const MenuPlanning = () => {
         </Button>
       </div>
 
-      {menuItems.length === 0 ? (
+      <div className="flex gap-4">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+          <Input
+            placeholder="Tìm theo mã hoặc tên món..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="pl-10"
+          />
+        </div>
+        <Select value={filterCategory} onValueChange={setFilterCategory}>
+          <SelectTrigger className="w-48">
+            <SelectValue placeholder="Lọc theo danh mục" />
+          </SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">Tất cả danh mục</SelectItem>
+            <SelectItem value="main">Món Chính</SelectItem>
+            <SelectItem value="side">Món Phụ</SelectItem>
+            <SelectItem value="drink">Đồ Uống</SelectItem>
+            <SelectItem value="dessert">Tráng Miệng</SelectItem>
+          </SelectContent>
+        </Select>
+      </div>
+
+      {filteredMenuItems.length === 0 ? (
         <Card>
           <CardContent className="pt-6">
             <div className="text-center py-12 text-muted-foreground">
@@ -95,11 +130,14 @@ const MenuPlanning = () => {
         </Card>
       ) : (
         <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-tutorial="menu-list">
-          {menuItems.map((item) => (
+          {filteredMenuItems.map((item) => (
             <Card key={item.id}>
               <CardHeader>
                 <div className="flex items-start justify-between">
-                  <CardTitle className="text-lg">{item.name}</CardTitle>
+                  <div className="flex-1">
+                    <div className="text-xs font-mono text-muted-foreground mb-1">{item.code || "-"}</div>
+                    <CardTitle className="text-lg">{item.name}</CardTitle>
+                  </div>
                   {item.is_available ? (
                     <Badge variant="default">Còn hàng</Badge>
                   ) : (

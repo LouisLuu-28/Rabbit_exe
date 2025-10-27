@@ -5,12 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
-import { Plus, Eye } from "lucide-react";
+import { Input } from "@/components/ui/input";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Plus, Eye, Search } from "lucide-react";
 import { AddOrderDialog } from "@/components/orders/AddOrderDialog";
 import { OrderDetailDialog } from "@/components/orders/OrderDetailDialog";
 
 interface Order {
   id: string;
+  code: string;
   customer_name: string;
   customer_phone: string;
   order_date: string;
@@ -25,6 +28,8 @@ const Orders = () => {
   const [dialogOpen, setDialogOpen] = useState(false);
   const [detailDialogOpen, setDetailDialogOpen] = useState(false);
   const [selectedOrderId, setSelectedOrderId] = useState<string | null>(null);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -73,6 +78,15 @@ const Orders = () => {
     return <Badge variant={variants[status] || "default"}>{labels[status] || status}</Badge>;
   };
 
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      order.code?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      order.customer_phone?.toLowerCase().includes(searchTerm.toLowerCase());
+    const matchesStatus = filterStatus === "all" || order.status === filterStatus;
+    return matchesSearch && matchesStatus;
+  });
+
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
   }
@@ -94,9 +108,33 @@ const Orders = () => {
         <CardHeader>
           <CardTitle>Danh Sách Đơn Hàng</CardTitle>
           <CardDescription>Tất cả đơn hàng của bạn</CardDescription>
+          <div className="flex gap-4 mt-4">
+            <div className="relative flex-1">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+              <Input
+                placeholder="Tìm theo mã, tên hoặc SĐT khách hàng..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10"
+              />
+            </div>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="w-48">
+                <SelectValue placeholder="Lọc theo trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="pending">Chờ Xử Lý</SelectItem>
+                <SelectItem value="preparing">Đang Chuẩn Bị</SelectItem>
+                <SelectItem value="ready">Sẵn Sàng</SelectItem>
+                <SelectItem value="delivered">Đã Giao</SelectItem>
+                <SelectItem value="cancelled">Đã Hủy</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
         </CardHeader>
         <CardContent data-tutorial="order-list">
-          {orders.length === 0 ? (
+          {filteredOrders.length === 0 ? (
             <div className="text-center py-12 text-muted-foreground">
               <div className="text-6xl mb-4">📦</div>
               <p>Chưa có đơn hàng nào</p>
@@ -116,9 +154,9 @@ const Orders = () => {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {orders.map((order) => (
+                {filteredOrders.map((order) => (
                   <TableRow key={order.id}>
-                    <TableCell className="font-mono text-sm">{order.id.slice(0, 8)}</TableCell>
+                    <TableCell className="font-mono text-sm">{order.code || order.id.slice(0, 8)}</TableCell>
                     <TableCell className="font-medium">{order.customer_name}</TableCell>
                     <TableCell>{order.customer_phone || "-"}</TableCell>
                     <TableCell>{new Date(order.order_date).toLocaleDateString("vi-VN")}</TableCell>

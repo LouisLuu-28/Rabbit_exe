@@ -4,6 +4,7 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } f
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
 
@@ -18,7 +19,9 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
   const [loading, setLoading] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [ingredient, setIngredient] = useState({
+    code: "",
     name: "",
+    category: "",
     unit: "",
     current_stock: "",
     min_stock: "",
@@ -43,7 +46,9 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
 
     if (data) {
       setIngredient({
+        code: data.code || "",
         name: data.name,
+        category: data.category || "khac",
         unit: data.unit,
         current_stock: data.current_stock.toString(),
         min_stock: data.min_stock.toString(),
@@ -63,6 +68,7 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
       .from("ingredients")
       .update({
         name: ingredient.name,
+        category: ingredient.category,
         unit: ingredient.unit,
         current_stock: parseFloat(ingredient.current_stock),
         min_stock: parseFloat(ingredient.min_stock),
@@ -131,6 +137,16 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
 
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
+              <Label htmlFor="code">Mã Nguyên Liệu</Label>
+              <Input
+                id="code"
+                value={ingredient.code}
+                disabled
+                className="bg-muted"
+              />
+            </div>
+
+            <div>
               <Label htmlFor="name">Tên Nguyên Liệu *</Label>
               <Input
                 id="name"
@@ -141,6 +157,24 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
             </div>
 
             <div className="grid grid-cols-2 gap-4">
+              <div>
+                <Label htmlFor="category">Danh Mục *</Label>
+                <Select value={ingredient.category} onValueChange={(value) => setIngredient({ ...ingredient, category: value })}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="rau_cu">Rau Củ</SelectItem>
+                    <SelectItem value="thit">Thịt</SelectItem>
+                    <SelectItem value="ca">Cá & Hải Sản</SelectItem>
+                    <SelectItem value="gia_vi">Gia Vị</SelectItem>
+                    <SelectItem value="bot">Bột</SelectItem>
+                    <SelectItem value="dau">Dầu Ăn</SelectItem>
+                    <SelectItem value="do_kho">Đồ Khô</SelectItem>
+                    <SelectItem value="khac">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
               <div>
                 <Label htmlFor="unit">Đơn Vị *</Label>
                 <Input
