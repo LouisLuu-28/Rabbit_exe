@@ -26,6 +26,9 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
     current_stock: "",
     min_stock: "",
     cost_per_unit: "",
+    last_purchase_date: "",
+    manufacture_date: "",
+    expiration_date: "",
     supplier_info: "",
   });
 
@@ -53,6 +56,9 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
         current_stock: data.current_stock.toString(),
         min_stock: data.min_stock.toString(),
         cost_per_unit: data.cost_per_unit.toString(),
+        last_purchase_date: data.last_purchase_date || "",
+        manufacture_date: data.manufacture_date || "",
+        expiration_date: data.expiration_date || "",
         supplier_info: data.supplier_info || "",
       });
     }
@@ -73,6 +79,9 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
         current_stock: parseFloat(ingredient.current_stock),
         min_stock: parseFloat(ingredient.min_stock),
         cost_per_unit: parseFloat(ingredient.cost_per_unit),
+        last_purchase_date: ingredient.last_purchase_date || null,
+        manufacture_date: ingredient.manufacture_date || null,
+        expiration_date: ingredient.expiration_date || null,
         supplier_info: ingredient.supplier_info,
       })
       .eq("id", ingredientId);
@@ -220,6 +229,38 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
                   value={ingredient.min_stock}
                   onChange={(e) => setIngredient({ ...ingredient, min_stock: e.target.value })}
                   required
+                />
+              </div>
+            </div>
+
+            <div className="grid grid-cols-3 gap-4">
+              <div>
+                <Label htmlFor="last_purchase_date">Ngày Nhập</Label>
+                <Input
+                  id="last_purchase_date"
+                  type="date"
+                  value={ingredient.last_purchase_date}
+                  onChange={(e) => setIngredient({ ...ingredient, last_purchase_date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="manufacture_date">Ngày Sản Xuất</Label>
+                <Input
+                  id="manufacture_date"
+                  type="date"
+                  value={ingredient.manufacture_date}
+                  onChange={(e) => setIngredient({ ...ingredient, manufacture_date: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="expiration_date">Ngày Hết Hạn</Label>
+                <Input
+                  id="expiration_date"
+                  type="date"
+                  value={ingredient.expiration_date}
+                  onChange={(e) => setIngredient({ ...ingredient, expiration_date: e.target.value })}
                 />
               </div>
             </div>

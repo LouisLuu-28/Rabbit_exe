@@ -26,6 +26,8 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
     min_stock: "",
     cost_per_unit: "",
     last_purchase_date: "",
+    manufacture_date: "",
+    expiration_date: "",
     supplier_info: "",
   });
 
@@ -68,6 +70,8 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
         min_stock: "",
         cost_per_unit: "",
         last_purchase_date: "",
+        manufacture_date: "",
+        expiration_date: "",
         supplier_info: "",
       });
     }
@@ -189,6 +193,26 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
                 type="date"
                 value={formData.last_purchase_date}
                 onChange={(e) => setFormData({ ...formData, last_purchase_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="manufacture_date">Ngày Sản Xuất</Label>
+              <Input
+                id="manufacture_date"
+                type="date"
+                value={formData.manufacture_date}
+                onChange={(e) => setFormData({ ...formData, manufacture_date: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="expiration_date">Ngày Hết Hạn</Label>
+              <Input
+                id="expiration_date"
+                type="date"
+                value={formData.expiration_date}
+                onChange={(e) => setFormData({ ...formData, expiration_date: e.target.value })}
               />
             </div>
 

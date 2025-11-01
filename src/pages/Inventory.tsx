@@ -20,6 +20,9 @@ interface Ingredient {
   current_stock: number;
   min_stock: number;
   cost_per_unit: number;
+  manufacture_date?: string;
+  expiration_date?: string;
+  supplier_info?: string;
 }
 
 const Inventory = () => {
@@ -189,6 +192,7 @@ const Inventory = () => {
                   <TableHead>Giá / Đơn Vị</TableHead>
                   <TableHead>Tổng Giá Trị</TableHead>
                   <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Hạn Sử Dụng</TableHead>
                   <TableHead>Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
@@ -227,19 +231,38 @@ const Inventory = () => {
                         ) : (
                           <Badge variant="default">Đủ hàng</Badge>
                         )}
-                      </TableCell>
-                      <TableCell>
-                        <Button 
-                          variant="ghost" 
-                          size="sm"
-                          onClick={() => {
-                            setSelectedIngredientId(ingredient.id);
-                            setEditDialogOpen(true);
-                          }}
-                        >
-                          <Pencil className="h-4 w-4" />
-                        </Button>
-                      </TableCell>
+                       </TableCell>
+                       <TableCell>
+                         {ingredient.expiration_date ? (
+                           (() => {
+                             const today = new Date();
+                             const expiryDate = new Date(ingredient.expiration_date);
+                             const daysUntilExpiry = Math.ceil((expiryDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                             
+                             if (daysUntilExpiry < 0) {
+                               return <Badge variant="destructive">Đã hết hạn</Badge>;
+                             } else if (daysUntilExpiry <= 7) {
+                               return <Badge variant="outline" className="border-warning text-warning">Sắp hết hạn ({daysUntilExpiry} ngày)</Badge>;
+                             } else {
+                               return <span className="text-sm">{new Date(ingredient.expiration_date).toLocaleDateString('vi-VN')}</span>;
+                             }
+                           })()
+                         ) : (
+                           <span className="text-muted-foreground text-sm">Chưa có</span>
+                         )}
+                       </TableCell>
+                       <TableCell>
+                         <Button 
+                           variant="ghost" 
+                           size="sm"
+                           onClick={() => {
+                             setSelectedIngredientId(ingredient.id);
+                             setEditDialogOpen(true);
+                           }}
+                         >
+                           <Pencil className="h-4 w-4" />
+                         </Button>
+                       </TableCell>
                     </TableRow>
                   );
                 })}

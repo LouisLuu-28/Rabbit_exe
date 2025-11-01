@@ -65,8 +65,10 @@ export type Database = {
           cost_per_unit: number
           created_at: string | null
           current_stock: number
+          expiration_date: string | null
           id: string
           last_purchase_date: string | null
+          manufacture_date: string | null
           min_stock: number
           name: string
           supplier_info: string | null
@@ -80,8 +82,10 @@ export type Database = {
           cost_per_unit?: number
           created_at?: string | null
           current_stock?: number
+          expiration_date?: string | null
           id?: string
           last_purchase_date?: string | null
+          manufacture_date?: string | null
           min_stock?: number
           name: string
           supplier_info?: string | null
@@ -95,8 +99,10 @@ export type Database = {
           cost_per_unit?: number
           created_at?: string | null
           current_stock?: number
+          expiration_date?: string | null
           id?: string
           last_purchase_date?: string | null
+          manufacture_date?: string | null
           min_stock?: number
           name?: string
           supplier_info?: string | null
