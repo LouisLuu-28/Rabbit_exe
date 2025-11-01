@@ -32,6 +32,7 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
   const [loading, setLoading] = useState(false);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [formData, setFormData] = useState({
+    code: "",
     name: "",
     description: "",
     price: "",
@@ -100,16 +101,11 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Generate code
-    const { data: codeData } = await supabase.rpc('generate_menu_item_code', { p_user_id: user.id });
-    const code = codeData || 'TD-001';
-
     // Create menu item
     const { data: menuItem, error: menuError } = await supabase
       .from("menu_items")
       .insert({
         ...formData,
-        code,
         price: parseFloat(formData.price) || 0,
         user_id: user.id,
       })
@@ -156,6 +152,7 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     onOpenChange(false);
     // Reset form
     setFormData({
+      code: "",
       name: "",
       description: "",
       price: "",
@@ -176,7 +173,18 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="code">Mã Món *</Label>
+              <Input
+                id="code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="VD: TD-001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="name">Tên Món *</Label>
               <Input
                 id="name"

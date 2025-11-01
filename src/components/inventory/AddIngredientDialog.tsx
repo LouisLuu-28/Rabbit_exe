@@ -18,6 +18,7 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [formData, setFormData] = useState({
+    code: "",
     name: "",
     category: "rau_cu",
     unit: "kg",
@@ -35,13 +36,8 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
-    // Generate code
-    const { data: codeData } = await supabase.rpc('generate_ingredient_code', { p_user_id: user.id });
-    const code = codeData || 'NL-001';
-
     const { error } = await supabase.from("ingredients").insert({
       ...formData,
-      code,
       current_stock: parseFloat(formData.current_stock) || 0,
       min_stock: parseFloat(formData.min_stock) || 0,
       cost_per_unit: parseFloat(formData.cost_per_unit) || 0,
@@ -64,6 +60,7 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
       onOpenChange(false);
       // Reset form
       setFormData({
+        code: "",
         name: "",
         category: "rau_cu",
         unit: "kg",
@@ -87,7 +84,18 @@ export function AddIngredientDialog({ open, onOpenChange, onSuccess }: AddIngred
 
         <form onSubmit={handleSubmit} className="space-y-4">
           <div className="grid grid-cols-2 gap-4">
-            <div className="space-y-2 col-span-2">
+            <div className="space-y-2">
+              <Label htmlFor="code">Mã Nguyên Liệu *</Label>
+              <Input
+                id="code"
+                value={formData.code}
+                onChange={(e) => setFormData({ ...formData, code: e.target.value })}
+                placeholder="VD: NL-001"
+                required
+              />
+            </div>
+
+            <div className="space-y-2">
               <Label htmlFor="name">Tên Nguyên Liệu *</Label>
               <Input
                 id="name"
