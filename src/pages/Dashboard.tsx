@@ -4,6 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Package, DollarSign, TrendingUp } from "lucide-react";
+import { CustomerReturnFrequency } from "@/components/CustomerReturnFrequency";
 
 interface DashboardStats {
   totalOrders: number;
@@ -264,6 +265,8 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <CustomerReturnFrequency />
     </div>
   );
 };
