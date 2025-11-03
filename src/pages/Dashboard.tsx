@@ -5,6 +5,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Package, DollarSign, TrendingUp } from "lucide-react";
 import { CustomerReturnFrequency } from "@/components/CustomerReturnFrequency";
+import { PreferredSuppliers } from "@/components/PreferredSuppliers";
 
 interface DashboardStats {
   totalOrders: number;
@@ -266,7 +267,10 @@ const Dashboard = () => {
         </Card>
       </div>
 
-      <CustomerReturnFrequency />
+      <div className="grid gap-4 md:grid-cols-2">
+        <CustomerReturnFrequency />
+        <PreferredSuppliers />
+      </div>
     </div>
   );
 };
