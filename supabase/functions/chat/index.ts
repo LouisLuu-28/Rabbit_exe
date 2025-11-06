@@ -15,60 +15,11 @@ serve(async (req) => {
 
     const systemPrompt = `Bạn là trợ lý AI thông minh cho hệ thống quản lý nhà hàng. Bạn có thể:
 - Trả lời câu hỏi và hỗ trợ người dùng
-- Tra cứu thông tin về đơn hàng, nguyên liệu, món ăn
-- Thêm món ăn mới, nguyên liệu mới vào hệ thống
-- Đưa ra gợi ý và phân tích dữ liệu
+- Đưa ra gợi ý về quản lý nhà hàng
+- Giải đáp thắc mắc về đơn hàng, nguyên liệu, món ăn
+- Phân tích và tư vấn
 
-Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi cần tra cứu hoặc thêm dữ liệu, hãy sử dụng các công cụ có sẵn.`;
-
-    const tools = [
-      {
-        type: "function",
-        name: "search_menu_items",
-        description: "Tra cứu thông tin món ăn trong thực đơn. Trả về danh sách các món ăn với tên, giá, mô tả.",
-        parameters: {
-          type: "object",
-          properties: {
-            query: { type: "string", description: "Từ khóa tìm kiếm món ăn" }
-          },
-          required: ["query"]
-        }
-      },
-      {
-        type: "function",
-        name: "search_ingredients",
-        description: "Tra cứu thông tin nguyên liệu trong kho. Trả về thông tin tồn kho, giá, nhà cung cấp.",
-        parameters: {
-          type: "object",
-          properties: {
-            query: { type: "string", description: "Từ khóa tìm kiếm nguyên liệu" }
-          },
-          required: ["query"]
-        }
-      },
-      {
-        type: "function",
-        name: "search_orders",
-        description: "Tra cứu thông tin đơn hàng. Tìm kiếm theo tên khách hàng, số điện thoại hoặc mã đơn.",
-        parameters: {
-          type: "object",
-          properties: {
-            query: { type: "string", description: "Từ khóa tìm kiếm đơn hàng (tên, sdt, mã)" }
-          },
-          required: ["query"]
-        }
-      },
-      {
-        type: "function",
-        name: "get_statistics",
-        description: "Lấy thống kê tổng quan về doanh thu, đơn hàng, tồn kho.",
-        parameters: {
-          type: "object",
-          properties: {},
-          required: []
-        }
-      }
-    ];
+Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.`;
 
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
@@ -82,7 +33,6 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
           { role: "system", content: systemPrompt },
           ...messages,
         ],
-        tools,
         stream: true,
       }),
     });
