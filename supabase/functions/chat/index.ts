@@ -69,6 +69,61 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
             required: ["name", "unit", "cost_per_unit"]
           }
         }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_menu_items",
+          description: "Tra cứu thông tin món ăn trong thực đơn",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Từ khóa tìm kiếm món ăn (tên hoặc mô tả)" }
+            },
+            required: ["query"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_ingredients",
+          description: "Tra cứu thông tin nguyên liệu trong kho",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Từ khóa tìm kiếm nguyên liệu" }
+            },
+            required: ["query"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "search_orders",
+          description: "Tra cứu thông tin đơn hàng",
+          parameters: {
+            type: "object",
+            properties: {
+              query: { type: "string", description: "Từ khóa tìm kiếm (tên khách hàng, số điện thoại, mã đơn)" }
+            },
+            required: ["query"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "get_statistics",
+          description: "Lấy thống kê tổng quan về doanh thu, đơn hàng, tồn kho",
+          parameters: {
+            type: "object",
+            properties: {
+              period: { type: "string", description: "Khoảng thời gian: today/week/month/year", enum: ["today", "week", "month", "year"] }
+            }
+          }
+        }
       }
     ];
 
@@ -126,7 +181,7 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
               price: args.price,
               category: args.category || "main",
               code: codeData,
-            }).select().single();
+            }).select().maybeSingle();
             
             result = error ? { success: false, error: error.message } : { success: true, data };
           }
@@ -146,9 +201,107 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
               supplier_info: args.supplier_info || null,
               category: args.category || null,
               code: codeData,
-            }).select().single();
+            }).select().maybeSingle();
             
             result = error ? { success: false, error: error.message } : { success: true, data };
+          }
+        } else if (functionName === "search_menu_items") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const { data, error } = await supabase
+              .from("menu_items")
+              .select("*")
+              .eq("user_id", userData.user.id)
+              .or(`name.ilike.%${args.query}%,description.ilike.%${args.query}%,code.ilike.%${args.query}%`)
+              .limit(10);
+            
+            result = error ? { success: false, error: error.message } : { success: true, count: data?.length || 0, items: data };
+          }
+        } else if (functionName === "search_ingredients") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const { data, error } = await supabase
+              .from("ingredients")
+              .select("*")
+              .eq("user_id", userData.user.id)
+              .or(`name.ilike.%${args.query}%,supplier_info.ilike.%${args.query}%,code.ilike.%${args.query}%,category.ilike.%${args.query}%`)
+              .limit(10);
+            
+            result = error ? { success: false, error: error.message } : { success: true, count: data?.length || 0, items: data };
+          }
+        } else if (functionName === "search_orders") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const { data, error } = await supabase
+              .from("orders")
+              .select("*, order_items(*, menu_item_id(name))")
+              .eq("user_id", userData.user.id)
+              .or(`customer_name.ilike.%${args.query}%,customer_phone.ilike.%${args.query}%,code.ilike.%${args.query}%`)
+              .order("order_date", { ascending: false })
+              .limit(10);
+            
+            result = error ? { success: false, error: error.message } : { success: true, count: data?.length || 0, orders: data };
+          }
+        } else if (functionName === "get_statistics") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const period = args.period || "week";
+            let dateFilter = "";
+            const now = new Date();
+            
+            if (period === "today") {
+              dateFilter = now.toISOString().split("T")[0];
+            } else if (period === "week") {
+              const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+              dateFilter = weekAgo.toISOString().split("T")[0];
+            } else if (period === "month") {
+              const monthAgo = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+              dateFilter = monthAgo.toISOString().split("T")[0];
+            } else if (period === "year") {
+              const yearAgo = new Date(now.getTime() - 365 * 24 * 60 * 60 * 1000);
+              dateFilter = yearAgo.toISOString().split("T")[0];
+            }
+
+            const [ordersResult, ingredientsResult, menuItemsResult, financialResult] = await Promise.all([
+              supabase.from("orders").select("*").eq("user_id", userData.user.id).gte("order_date", dateFilter),
+              supabase.from("ingredients").select("*").eq("user_id", userData.user.id),
+              supabase.from("menu_items").select("*").eq("user_id", userData.user.id),
+              supabase.from("financial_records").select("*").eq("user_id", userData.user.id).gte("record_date", dateFilter)
+            ]);
+
+            const totalRevenue = ordersResult.data?.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) || 0;
+            const totalOrders = ordersResult.data?.length || 0;
+            const pendingOrders = ordersResult.data?.filter(o => o.status === "pending").length || 0;
+            const lowStockItems = ingredientsResult.data?.filter(i => Number(i.current_stock) < Number(i.min_stock)).length || 0;
+            const totalIngredients = ingredientsResult.data?.length || 0;
+            const totalMenuItems = menuItemsResult.data?.length || 0;
+            
+            const totalExpenses = financialResult.data?.filter(r => r.type === "expense").reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
+            const totalIncome = financialResult.data?.filter(r => r.type === "income").reduce((sum, r) => sum + Number(r.amount || 0), 0) || 0;
+
+            result = {
+              success: true,
+              period,
+              statistics: {
+                revenue: totalRevenue,
+                orders: totalOrders,
+                pendingOrders,
+                menuItems: totalMenuItems,
+                ingredients: totalIngredients,
+                lowStockItems,
+                expenses: totalExpenses,
+                income: totalIncome,
+                profit: totalIncome - totalExpenses
+              }
+            };
           }
         }
         
