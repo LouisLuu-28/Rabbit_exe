@@ -7,6 +7,7 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tutorial } from "@/components/Tutorial";
+import { ChatBox } from "@/components/ChatBox";
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
 import Auth from "./pages/Auth";
@@ -70,20 +71,21 @@ const App = () => {
         <Sonner />
         <BrowserRouter>
           {showTutorial && <Tutorial onComplete={handleTutorialComplete} />}
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/auth" element={<Auth />} />
-          <Route path="/forgot-password" element={<ForgotPassword />} />
-          <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
-          <Route path="/orders" element={<DashboardLayout><Orders /></DashboardLayout>} />
-          <Route path="/menu-planning" element={<DashboardLayout><MenuPlanning /></DashboardLayout>} />
-          <Route path="/inventory" element={<DashboardLayout><Inventory /></DashboardLayout>} />
-          <Route path="/financial" element={<DashboardLayout><Financial /></DashboardLayout>} />
-          <Route path="/account" element={<DashboardLayout><Account /></DashboardLayout>} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </BrowserRouter>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/auth" element={<Auth />} />
+            <Route path="/forgot-password" element={<ForgotPassword />} />
+            <Route path="/dashboard" element={<DashboardLayout><Dashboard /></DashboardLayout>} />
+            <Route path="/orders" element={<DashboardLayout><Orders /></DashboardLayout>} />
+            <Route path="/menu-planning" element={<DashboardLayout><MenuPlanning /></DashboardLayout>} />
+            <Route path="/inventory" element={<DashboardLayout><Inventory /></DashboardLayout>} />
+            <Route path="/financial" element={<DashboardLayout><Financial /></DashboardLayout>} />
+            <Route path="/account" element={<DashboardLayout><Account /></DashboardLayout>} />
+            {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
+            <Route path="*" element={<NotFound />} />
+          </Routes>
+          <ChatBox />
+        </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
   );
