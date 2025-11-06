@@ -1,4 +1,5 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2.75.1";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -11,16 +12,188 @@ serve(async (req) => {
   try {
     const { messages } = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+    const SUPABASE_URL = Deno.env.get("SUPABASE_URL");
+    const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY");
+    
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY is not configured");
+    if (!SUPABASE_URL || !SUPABASE_SERVICE_ROLE_KEY) throw new Error("Supabase not configured");
+
+    const authHeader = req.headers.get("authorization");
+    const token = authHeader?.replace("Bearer ", "");
+    const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
+      global: { headers: { Authorization: `Bearer ${token}` } },
+    });
 
     const systemPrompt = `Bạn là trợ lý AI thông minh cho hệ thống quản lý nhà hàng. Bạn có thể:
 - Trả lời câu hỏi và hỗ trợ người dùng
+- Thêm món ăn mới vào thực đơn
+- Thêm nguyên liệu mới vào kho
 - Đưa ra gợi ý về quản lý nhà hàng
-- Giải đáp thắc mắc về đơn hàng, nguyên liệu, món ăn
-- Phân tích và tư vấn
 
-Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.`;
+Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi người dùng yêu cầu thêm món ăn hoặc nguyên liệu, hãy sử dụng công cụ có sẵn.`;
 
+    const tools = [
+      {
+        type: "function",
+        function: {
+          name: "add_menu_item",
+          description: "Thêm món ăn mới vào thực đơn",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Tên món ăn" },
+              description: { type: "string", description: "Mô tả món ăn" },
+              price: { type: "number", description: "Giá món ăn" },
+              category: { type: "string", description: "Phân loại: main/appetizer/dessert/drink" }
+            },
+            required: ["name", "price"]
+          }
+        }
+      },
+      {
+        type: "function",
+        function: {
+          name: "add_ingredient",
+          description: "Thêm nguyên liệu mới vào kho",
+          parameters: {
+            type: "object",
+            properties: {
+              name: { type: "string", description: "Tên nguyên liệu" },
+              unit: { type: "string", description: "Đơn vị tính (kg, lít, gói, ...)" },
+              current_stock: { type: "number", description: "Số lượng tồn kho hiện tại" },
+              min_stock: { type: "number", description: "Số lượng tồn kho tối thiểu" },
+              cost_per_unit: { type: "number", description: "Giá mỗi đơn vị" },
+              supplier_info: { type: "string", description: "Thông tin nhà cung cấp" },
+              category: { type: "string", description: "Phân loại nguyên liệu" }
+            },
+            required: ["name", "unit", "cost_per_unit"]
+          }
+        }
+      }
+    ];
+
+    // First call to check for tool usage
+    const initialResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+      method: "POST",
+      headers: {
+        Authorization: `Bearer ${LOVABLE_API_KEY}`,
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify({
+        model: "google/gemini-2.5-flash",
+        messages: [
+          { role: "system", content: systemPrompt },
+          ...messages,
+        ],
+        tools,
+        tool_choice: "auto",
+      }),
+    });
+
+    if (!initialResponse.ok) {
+      const errorText = await initialResponse.text();
+      console.error("AI gateway error:", initialResponse.status, errorText);
+      return new Response(JSON.stringify({ error: "Lỗi AI gateway" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const initialData = await initialResponse.json();
+    const choice = initialData.choices?.[0];
+
+    // Check if AI wants to use tools
+    if (choice?.message?.tool_calls) {
+      const toolResults = [];
+      
+      for (const toolCall of choice.message.tool_calls) {
+        const functionName = toolCall.function.name;
+        const args = JSON.parse(toolCall.function.arguments);
+        
+        console.log("Executing tool:", functionName, args);
+        
+        let result;
+        if (functionName === "add_menu_item") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const { data: codeData } = await supabase.rpc("generate_menu_item_code", { p_user_id: userData.user.id });
+            const { data, error } = await supabase.from("menu_items").insert({
+              user_id: userData.user.id,
+              name: args.name,
+              description: args.description || null,
+              price: args.price,
+              category: args.category || "main",
+              code: codeData,
+            }).select().single();
+            
+            result = error ? { success: false, error: error.message } : { success: true, data };
+          }
+        } else if (functionName === "add_ingredient") {
+          const { data: userData } = await supabase.auth.getUser();
+          if (!userData.user) {
+            result = { success: false, error: "Người dùng chưa đăng nhập" };
+          } else {
+            const { data: codeData } = await supabase.rpc("generate_ingredient_code", { p_user_id: userData.user.id });
+            const { data, error } = await supabase.from("ingredients").insert({
+              user_id: userData.user.id,
+              name: args.name,
+              unit: args.unit,
+              current_stock: args.current_stock || 0,
+              min_stock: args.min_stock || 0,
+              cost_per_unit: args.cost_per_unit,
+              supplier_info: args.supplier_info || null,
+              category: args.category || null,
+              code: codeData,
+            }).select().single();
+            
+            result = error ? { success: false, error: error.message } : { success: true, data };
+          }
+        }
+        
+        toolResults.push({
+          tool_call_id: toolCall.id,
+          role: "tool",
+          name: functionName,
+          content: JSON.stringify(result),
+        });
+      }
+
+      // Call AI again with tool results and stream final response
+      const finalResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-2.5-flash",
+          messages: [
+            { role: "system", content: systemPrompt },
+            ...messages,
+            choice.message,
+            ...toolResults,
+          ],
+          stream: true,
+        }),
+      });
+
+      if (!finalResponse.ok) {
+        const errorText = await finalResponse.text();
+        console.error("AI gateway error:", finalResponse.status, errorText);
+        return new Response(JSON.stringify({ error: "Lỗi AI gateway" }), {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      return new Response(finalResponse.body, {
+        headers: { ...corsHeaders, "Content-Type": "text/event-stream" },
+      });
+    }
+
+    // No tool calls, stream the response directly
     const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
       method: "POST",
       headers: {
@@ -33,6 +206,7 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp.`;
           { role: "system", content: systemPrompt },
           ...messages,
         ],
+        tools,
         stream: true,
       }),
     });
