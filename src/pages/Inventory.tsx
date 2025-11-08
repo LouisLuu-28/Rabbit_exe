@@ -7,7 +7,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Package, AlertTriangle, Pencil, Search } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
 import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
 
@@ -23,6 +23,17 @@ interface Ingredient {
   manufacture_date?: string;
   expiration_date?: string;
   supplier_info?: string;
+  created_at?: string;
+  last_purchase_date?: string;
+}
+
+interface InventoryMovement {
+  date: string;
+  ingredient_name: string;
+  type: 'import' | 'export';
+  quantity: number;
+  unit: string;
+  reference: string;
 }
 
 const Inventory = () => {
@@ -34,6 +45,7 @@ const Inventory = () => {
   const [selectedIngredientId, setSelectedIngredientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -61,7 +73,78 @@ const Inventory = () => {
 
     if (!error && data) {
       setIngredients(data);
+      await fetchInventoryMovements(user.id, data);
     }
+  };
+
+  const fetchInventoryMovements = async (userId: string, ingredientsList: Ingredient[]) => {
+    const movements: InventoryMovement[] = [];
+    
+    // Fetch imports (new ingredients added)
+    ingredientsList.forEach((ingredient) => {
+      if (ingredient.created_at) {
+        movements.push({
+          date: ingredient.created_at,
+          ingredient_name: ingredient.name,
+          type: 'import',
+          quantity: ingredient.current_stock,
+          unit: ingredient.unit,
+          reference: 'Nhập kho ban đầu'
+        });
+      }
+    });
+
+    // Fetch exports (ingredients used in orders)
+    const { data: orders } = await supabase
+      .from("orders")
+      .select(`
+        id,
+        code,
+        order_date,
+        order_items (
+          quantity,
+          menu_item_id
+        )
+      `)
+      .eq("user_id", userId)
+      .order("order_date", { ascending: false })
+      .limit(50);
+
+    if (orders) {
+      for (const order of orders) {
+        if (order.order_items) {
+          for (const item of order.order_items as any[]) {
+            const { data: menuItemIngredients } = await supabase
+              .from("menu_item_ingredients")
+              .select(`
+                quantity_needed,
+                ingredient_id,
+                menu_items!inner(name)
+              `)
+              .eq("menu_item_id", item.menu_item_id);
+
+            if (menuItemIngredients) {
+              for (const mii of menuItemIngredients) {
+                const ingredient = ingredientsList.find(i => i.id === mii.ingredient_id);
+                if (ingredient) {
+                  movements.push({
+                    date: order.order_date,
+                    ingredient_name: ingredient.name,
+                    type: 'export',
+                    quantity: mii.quantity_needed * item.quantity,
+                    unit: ingredient.unit,
+                    reference: `Đơn ${order.code}`
+                  });
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+
+    movements.sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+    setInventoryMovements(movements.slice(0, 20));
   };
 
   const getCategoryLabel = (category: string) => {
@@ -89,6 +172,23 @@ const Inventory = () => {
   const lowStockCount = ingredients.filter(i => i.current_stock <= i.min_stock).length;
   const outOfStockCount = ingredients.filter(i => i.current_stock === 0).length;
   const totalValue = ingredients.reduce((sum, i) => sum + (i.current_stock * i.cost_per_unit), 0);
+  
+  // Calculate slow-moving inventory (over 30 days old)
+  const slowMovingIngredients = ingredients.filter(ingredient => {
+    const purchaseDate = ingredient.last_purchase_date 
+      ? new Date(ingredient.last_purchase_date) 
+      : ingredient.created_at 
+        ? new Date(ingredient.created_at)
+        : null;
+    
+    if (!purchaseDate) return false;
+    
+    const daysSincePurchase = Math.floor(
+      (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    
+    return daysSincePurchase > 30 && ingredient.current_stock > 0;
+  });
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
@@ -107,7 +207,7 @@ const Inventory = () => {
         </Button>
       </div>
 
-      <div className="grid gap-4 md:grid-cols-3">
+      <div className="grid gap-4 md:grid-cols-4">
         <Card>
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Tổng Nguyên Liệu</CardTitle>
@@ -115,6 +215,19 @@ const Inventory = () => {
           <CardContent>
             <div className="text-2xl font-bold">{ingredients.length}</div>
             <p className="text-xs text-muted-foreground mt-1">Loại nguyên liệu</p>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader className="pb-3">
+            <CardTitle className="text-sm font-medium flex items-center gap-2">
+              <DollarSign className="h-4 w-4" />
+              Tổng Giá Trị Tồn Kho
+            </CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="text-2xl font-bold">{totalValue.toLocaleString()}₫</div>
+            <p className="text-xs text-muted-foreground mt-1">Giá trị hiện tại</p>
           </CardContent>
         </Card>
 
@@ -135,6 +248,116 @@ const Inventory = () => {
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{outOfStockCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Cần mua gấp</p>
+          </CardContent>
+        </Card>
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingDown className="h-5 w-5" />
+              Hàng Tồn Chậm Luân Chuyển
+            </CardTitle>
+            <CardDescription>
+              Nguyên liệu tồn kho trên 30 ngày
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {slowMovingIngredients.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <Package className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>Không có hàng tồn chậm</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Tên NL</TableHead>
+                    <TableHead>Tồn Kho</TableHead>
+                    <TableHead>Giá Trị</TableHead>
+                    <TableHead>Số Ngày Tồn</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {slowMovingIngredients.slice(0, 5).map((ingredient) => {
+                    const purchaseDate = ingredient.last_purchase_date 
+                      ? new Date(ingredient.last_purchase_date) 
+                      : new Date(ingredient.created_at!);
+                    const daysSincePurchase = Math.floor(
+                      (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
+                    );
+                    const value = ingredient.current_stock * ingredient.cost_per_unit;
+                    
+                    return (
+                      <TableRow key={ingredient.id}>
+                        <TableCell className="font-medium">{ingredient.name}</TableCell>
+                        <TableCell>{ingredient.current_stock} {ingredient.unit}</TableCell>
+                        <TableCell>{value.toLocaleString()}₫</TableCell>
+                        <TableCell>
+                          <Badge variant="outline" className="border-warning text-warning">
+                            {daysSincePurchase} ngày
+                          </Badge>
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <History className="h-5 w-5" />
+              Lịch Sử Nhập Xuất
+            </CardTitle>
+            <CardDescription>
+              20 giao dịch gần nhất
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {inventoryMovements.length === 0 ? (
+              <div className="text-center py-8 text-muted-foreground">
+                <History className="h-10 w-10 mx-auto mb-3 opacity-50" />
+                <p>Chưa có lịch sử</p>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Ngày</TableHead>
+                    <TableHead>Nguyên Liệu</TableHead>
+                    <TableHead>Loại</TableHead>
+                    <TableHead>Số Lượng</TableHead>
+                    <TableHead>Tham Chiếu</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {inventoryMovements.map((movement, index) => (
+                    <TableRow key={index}>
+                      <TableCell className="text-sm">
+                        {new Date(movement.date).toLocaleDateString('vi-VN')}
+                      </TableCell>
+                      <TableCell className="font-medium">{movement.ingredient_name}</TableCell>
+                      <TableCell>
+                        <Badge variant={movement.type === 'import' ? 'default' : 'secondary'}>
+                          {movement.type === 'import' ? 'Nhập' : 'Xuất'}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {movement.quantity} {movement.unit}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {movement.reference}
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
