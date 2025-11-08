@@ -7,7 +7,7 @@ import { ShoppingCart, Package, DollarSign, TrendingUp } from "lucide-react";
 import { CustomerReturnFrequency } from "@/components/CustomerReturnFrequency";
 import { PreferredSuppliers } from "@/components/PreferredSuppliers";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
-import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
+import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts";
 
 interface DashboardStats {
   totalOrders: number;
@@ -39,6 +39,12 @@ interface ChartData {
   orders: number;
 }
 
+interface IngredientChartData {
+  date: string;
+  imported: number;
+  used: number;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -52,6 +58,7 @@ const Dashboard = () => {
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStockIngredients, setLowStockIngredients] = useState<Ingredient[]>([]);
   const [chartData, setChartData] = useState<ChartData[]>([]);
+  const [ingredientChartData, setIngredientChartData] = useState<IngredientChartData[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -163,6 +170,77 @@ const Dashboard = () => {
     }));
 
     setChartData(formattedChartData);
+
+    // Fetch ingredient usage and imports data
+    const ingredientDateMap = new Map<string, { imported: number; used: number }>();
+    
+    // Initialize all dates
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      const dateStr = date.toISOString().split('T')[0];
+      ingredientDateMap.set(dateStr, { imported: 0, used: 0 });
+    }
+
+    // Calculate ingredients imported (based on created_at or updated_at)
+    const { data: recentIngredients } = await supabase
+      .from("ingredients")
+      .select("created_at, updated_at")
+      .eq("user_id", user.id)
+      .gte("created_at", sevenDaysAgo.toISOString());
+
+    recentIngredients?.forEach(ingredient => {
+      const dateStr = ingredient.created_at.split('T')[0];
+      if (ingredientDateMap.has(dateStr)) {
+        const existing = ingredientDateMap.get(dateStr)!;
+        ingredientDateMap.set(dateStr, { ...existing, imported: existing.imported + 1 });
+      }
+    });
+
+    // Calculate ingredients used (from orders)
+    const { data: orderItemsData } = await supabase
+      .from("orders")
+      .select(`
+        order_date,
+        order_items (
+          quantity,
+          menu_item_id
+        )
+      `)
+      .eq("user_id", user.id)
+      .gte("order_date", sevenDaysAgo.toISOString().split('T')[0]);
+
+    // Get menu item ingredients to calculate usage
+    if (orderItemsData) {
+      for (const order of orderItemsData) {
+        const dateStr = order.order_date;
+        if (!ingredientDateMap.has(dateStr)) continue;
+
+        for (const item of (order.order_items as any[])) {
+          const { data: menuIngredients } = await supabase
+            .from("menu_item_ingredients")
+            .select("ingredient_id, quantity_needed")
+            .eq("menu_item_id", item.menu_item_id);
+
+          if (menuIngredients) {
+            const existing = ingredientDateMap.get(dateStr)!;
+            ingredientDateMap.set(dateStr, {
+              ...existing,
+              used: existing.used + (menuIngredients.length * item.quantity),
+            });
+          }
+        }
+      }
+    }
+
+    // Convert to ingredient chart data format
+    const formattedIngredientChartData: IngredientChartData[] = Array.from(ingredientDateMap.entries()).map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+      imported: data.imported,
+      used: data.used,
+    }));
+
+    setIngredientChartData(formattedIngredientChartData);
   };
 
   if (loading) {
@@ -418,6 +496,59 @@ const Dashboard = () => {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Nguyên Liệu Nhập & Sử Dụng (7 Ngày)</CardTitle>
+          <CardDescription>Theo dõi nhập kho và tiêu thụ nguyên liệu</CardDescription>
+        </CardHeader>
+        <CardContent>
+          <ChartContainer
+            config={{
+              imported: {
+                label: "Nhập vào",
+                color: "hsl(var(--chart-3))",
+              },
+              used: {
+                label: "Sử dụng",
+                color: "hsl(var(--chart-4))",
+              },
+            }}
+            className="h-[300px]"
+          >
+            <BarChart data={ingredientChartData}>
+              <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+              <XAxis 
+                dataKey="date" 
+                className="text-xs"
+                tick={{ fill: "hsl(var(--muted-foreground))" }}
+              />
+              <YAxis 
+                className="text-xs"
+                tick={{ fill: "hsl(var(--muted-foreground))" }}
+                allowDecimals={false}
+              />
+              <ChartTooltip content={<ChartTooltipContent />} />
+              <Legend 
+                wrapperStyle={{ paddingTop: "20px" }}
+                iconType="rect"
+              />
+              <Bar 
+                dataKey="imported" 
+                fill="hsl(var(--chart-3))" 
+                radius={[4, 4, 0, 0]}
+                name="Nhập vào"
+              />
+              <Bar 
+                dataKey="used" 
+                fill="hsl(var(--chart-4))" 
+                radius={[4, 4, 0, 0]}
+                name="Sử dụng"
+              />
+            </BarChart>
+          </ChartContainer>
+        </CardContent>
+      </Card>
 
       <div className="grid gap-4 md:grid-cols-2">
         <CustomerReturnFrequency />
