@@ -6,6 +6,8 @@ import { Badge } from "@/components/ui/badge";
 import { ShoppingCart, Package, DollarSign, TrendingUp } from "lucide-react";
 import { CustomerReturnFrequency } from "@/components/CustomerReturnFrequency";
 import { PreferredSuppliers } from "@/components/PreferredSuppliers";
+import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
+import { Area, AreaChart, CartesianGrid, XAxis, YAxis } from "recharts";
 
 interface DashboardStats {
   totalOrders: number;
@@ -31,6 +33,12 @@ interface Ingredient {
   unit: string;
 }
 
+interface ChartData {
+  date: string;
+  revenue: number;
+  orders: number;
+}
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
@@ -43,6 +51,7 @@ const Dashboard = () => {
   });
   const [recentOrders, setRecentOrders] = useState<Order[]>([]);
   const [lowStockIngredients, setLowStockIngredients] = useState<Ingredient[]>([]);
+  const [chartData, setChartData] = useState<ChartData[]>([]);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -113,6 +122,47 @@ const Dashboard = () => {
     });
     setRecentOrders(recentOrdersData || []);
     setLowStockIngredients(lowStock);
+
+    // Fetch data for chart (last 7 days)
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 6);
+    
+    const { data: chartOrdersData } = await supabase
+      .from("orders")
+      .select("order_date, total_amount")
+      .eq("user_id", user.id)
+      .gte("order_date", sevenDaysAgo.toISOString().split('T')[0])
+      .order("order_date", { ascending: true });
+
+    // Group data by date
+    const dateMap = new Map<string, { revenue: number; orders: number }>();
+    
+    // Initialize all dates in the range
+    for (let i = 0; i < 7; i++) {
+      const date = new Date();
+      date.setDate(date.getDate() - (6 - i));
+      const dateStr = date.toISOString().split('T')[0];
+      dateMap.set(dateStr, { revenue: 0, orders: 0 });
+    }
+
+    // Fill in actual data
+    chartOrdersData?.forEach(order => {
+      const dateStr = order.order_date;
+      const existing = dateMap.get(dateStr) || { revenue: 0, orders: 0 };
+      dateMap.set(dateStr, {
+        revenue: existing.revenue + Number(order.total_amount),
+        orders: existing.orders + 1,
+      });
+    });
+
+    // Convert to chart data format
+    const formattedChartData: ChartData[] = Array.from(dateMap.entries()).map(([date, data]) => ({
+      date: new Date(date).toLocaleDateString("vi-VN", { day: "2-digit", month: "2-digit" }),
+      revenue: data.revenue,
+      orders: data.orders,
+    }));
+
+    setChartData(formattedChartData);
   };
 
   if (loading) {
@@ -197,6 +247,108 @@ const Dashboard = () => {
             </CardContent>
           </Card>
         ))}
+      </div>
+
+      <div className="grid gap-4 md:grid-cols-2">
+        <Card>
+          <CardHeader>
+            <CardTitle>Doanh Thu 7 Ngày Qua</CardTitle>
+            <CardDescription>Xu hướng doanh thu theo ngày</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                revenue: {
+                  label: "Doanh thu",
+                  color: "hsl(var(--primary))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="revenueGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  tickFormatter={(value) => `${(value / 1000).toFixed(0)}k`}
+                />
+                <ChartTooltip 
+                  content={<ChartTooltipContent 
+                    formatter={(value) => `${Number(value).toLocaleString()}₫`}
+                  />} 
+                />
+                <Area
+                  type="monotone"
+                  dataKey="revenue"
+                  stroke="hsl(var(--primary))"
+                  fill="url(#revenueGradient)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Số Đơn Hàng 7 Ngày Qua</CardTitle>
+            <CardDescription>Xu hướng số lượng đơn hàng</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <ChartContainer
+              config={{
+                orders: {
+                  label: "Đơn hàng",
+                  color: "hsl(var(--chart-2))",
+                },
+              }}
+              className="h-[300px]"
+            >
+              <AreaChart data={chartData}>
+                <defs>
+                  <linearGradient id="ordersGradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="hsl(var(--chart-2))" stopOpacity={0.3} />
+                    <stop offset="100%" stopColor="hsl(var(--chart-2))" stopOpacity={0} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" className="stroke-muted" />
+                <XAxis 
+                  dataKey="date" 
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                />
+                <YAxis 
+                  className="text-xs"
+                  tick={{ fill: "hsl(var(--muted-foreground))" }}
+                  allowDecimals={false}
+                />
+                <ChartTooltip 
+                  content={<ChartTooltipContent 
+                    formatter={(value) => `${value} đơn`}
+                  />} 
+                />
+                <Area
+                  type="monotone"
+                  dataKey="orders"
+                  stroke="hsl(var(--chart-2))"
+                  fill="url(#ordersGradient)"
+                  strokeWidth={2}
+                />
+              </AreaChart>
+            </ChartContainer>
+          </CardContent>
+        </Card>
       </div>
 
       <div className="grid gap-4 md:grid-cols-2">
