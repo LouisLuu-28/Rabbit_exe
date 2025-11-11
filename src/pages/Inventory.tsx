@@ -7,9 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History, ArrowUpDown } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History, ArrowUpDown, Upload } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
 import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
+import { ImportIngredientsDialog } from "@/components/inventory/ImportIngredientsDialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Ingredient {
@@ -43,6 +44,7 @@ const Inventory = () => {
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedIngredientId, setSelectedIngredientId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -251,10 +253,16 @@ const Inventory = () => {
           <h1 className="text-3xl font-bold mb-2">Kho Nguyên Liệu</h1>
           <p className="text-muted-foreground">Quản lý và theo dõi tồn kho nguyên liệu</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-ingredient">
-          <Plus className="h-4 w-4" />
-          Thêm Nguyên Liệu
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4" />
+            Nhập Excel
+          </Button>
+          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-ingredient">
+            <Plus className="h-4 w-4" />
+            Thêm Nguyên Liệu
+          </Button>
+        </div>
       </div>
 
       <div className="grid gap-4 md:grid-cols-4">
@@ -689,6 +697,12 @@ const Inventory = () => {
       <AddIngredientDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onSuccess={fetchIngredients}
+      />
+      
+      <ImportIngredientsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={fetchIngredients}
       />
       

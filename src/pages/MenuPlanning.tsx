@@ -6,9 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search } from "lucide-react";
+import { Plus, Search, Upload } from "lucide-react";
 import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
+import { ImportMenuItemsDialog } from "@/components/menu/ImportMenuItemsDialog";
 
 interface MenuItem {
   id: string;
@@ -26,6 +27,7 @@ const MenuPlanning = () => {
   const [menuItems, setMenuItems] = useState<MenuItem[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
   const [editDialogOpen, setEditDialogOpen] = useState(false);
+  const [importDialogOpen, setImportDialogOpen] = useState(false);
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
@@ -88,10 +90,16 @@ const MenuPlanning = () => {
           <h1 className="text-3xl font-bold mb-2">Danh Sách Món Ăn</h1>
           <p className="text-muted-foreground">Quản lý tất cả món ăn trong thực đơn</p>
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-menu-item">
-          <Plus className="h-4 w-4" />
-          Thêm Món
-        </Button>
+        <div className="flex gap-2">
+          <Button variant="outline" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+            <Upload className="h-4 w-4" />
+            Nhập Excel
+          </Button>
+          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-menu-item">
+            <Plus className="h-4 w-4" />
+            Thêm Món
+          </Button>
+        </div>
       </div>
 
       <div className="flex gap-4">
@@ -178,6 +186,12 @@ const MenuPlanning = () => {
       <AddMenuItemDialog
         open={dialogOpen}
         onOpenChange={setDialogOpen}
+        onSuccess={fetchMenuItems}
+      />
+      
+      <ImportMenuItemsDialog
+        open={importDialogOpen}
+        onOpenChange={setImportDialogOpen}
         onSuccess={fetchMenuItems}
       />
       
