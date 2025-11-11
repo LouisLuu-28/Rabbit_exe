@@ -7,9 +7,10 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History, ArrowUpDown } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
 import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
+import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 
 interface Ingredient {
   id: string;
@@ -46,6 +47,15 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
+  
+  // Pagination and sorting states
+  const [slowMovingPage, setSlowMovingPage] = useState(1);
+  const [slowMovingSortBy, setSlowMovingSortBy] = useState<'days' | 'quantity' | 'value'>('days');
+  const [slowMovingSortOrder, setSlowMovingSortOrder] = useState<'asc' | 'desc'>('desc');
+  const [historyPage, setHistoryPage] = useState(1);
+  const [historySortBy, setHistorySortBy] = useState<'date' | 'quantity'>('date');
+  const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('desc');
+  const itemsPerPage = 5;
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -173,7 +183,7 @@ const Inventory = () => {
   const outOfStockCount = ingredients.filter(i => i.current_stock === 0).length;
   const totalValue = ingredients.reduce((sum, i) => sum + (i.current_stock * i.cost_per_unit), 0);
   
-  // Calculate slow-moving inventory (over 30 days old)
+  // Calculate slow-moving inventory (over 10 days old)
   const slowMovingIngredients = ingredients.filter(ingredient => {
     const purchaseDate = ingredient.last_purchase_date 
       ? new Date(ingredient.last_purchase_date) 
@@ -187,8 +197,48 @@ const Inventory = () => {
       (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
     );
     
-    return daysSincePurchase > 30 && ingredient.current_stock > 0;
+    return daysSincePurchase > 10 && ingredient.current_stock > 0;
   });
+
+  // Sort and paginate slow-moving ingredients
+  const sortedSlowMoving = [...slowMovingIngredients].sort((a, b) => {
+    const getPurchaseDate = (ing: Ingredient) => 
+      ing.last_purchase_date ? new Date(ing.last_purchase_date) : new Date(ing.created_at!);
+    
+    if (slowMovingSortBy === 'days') {
+      const daysA = Math.floor((new Date().getTime() - getPurchaseDate(a).getTime()) / (1000 * 60 * 60 * 24));
+      const daysB = Math.floor((new Date().getTime() - getPurchaseDate(b).getTime()) / (1000 * 60 * 60 * 24));
+      return slowMovingSortOrder === 'asc' ? daysA - daysB : daysB - daysA;
+    } else if (slowMovingSortBy === 'quantity') {
+      return slowMovingSortOrder === 'asc' ? a.current_stock - b.current_stock : b.current_stock - a.current_stock;
+    } else {
+      const valueA = a.current_stock * a.cost_per_unit;
+      const valueB = b.current_stock * b.cost_per_unit;
+      return slowMovingSortOrder === 'asc' ? valueA - valueB : valueB - valueA;
+    }
+  });
+  
+  const totalSlowMovingPages = Math.ceil(sortedSlowMoving.length / itemsPerPage);
+  const paginatedSlowMoving = sortedSlowMoving.slice(
+    (slowMovingPage - 1) * itemsPerPage,
+    slowMovingPage * itemsPerPage
+  );
+
+  // Sort and paginate inventory movements
+  const sortedMovements = [...inventoryMovements].sort((a, b) => {
+    if (historySortBy === 'date') {
+      const diff = new Date(a.date).getTime() - new Date(b.date).getTime();
+      return historySortOrder === 'asc' ? diff : -diff;
+    } else {
+      return historySortOrder === 'asc' ? a.quantity - b.quantity : b.quantity - a.quantity;
+    }
+  });
+  
+  const totalHistoryPages = Math.ceil(sortedMovements.length / itemsPerPage);
+  const paginatedMovements = sortedMovements.slice(
+    (historyPage - 1) * itemsPerPage,
+    historyPage * itemsPerPage
+  );
 
   if (loading) {
     return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
@@ -260,8 +310,55 @@ const Inventory = () => {
               Hàng Tồn Chậm Luân Chuyển
             </CardTitle>
             <CardDescription>
-              Nguyên liệu tồn kho trên 30 ngày
+              Nguyên liệu tồn kho trên 10 ngày
             </CardDescription>
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant={slowMovingSortBy === 'days' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  if (slowMovingSortBy === 'days') {
+                    setSlowMovingSortOrder(slowMovingSortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSlowMovingSortBy('days');
+                    setSlowMovingSortOrder('desc');
+                  }
+                  setSlowMovingPage(1);
+                }}
+              >
+                Số Ngày <ArrowUpDown className="h-3 w-3 ml-1" />
+              </Button>
+              <Button
+                variant={slowMovingSortBy === 'quantity' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  if (slowMovingSortBy === 'quantity') {
+                    setSlowMovingSortOrder(slowMovingSortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSlowMovingSortBy('quantity');
+                    setSlowMovingSortOrder('desc');
+                  }
+                  setSlowMovingPage(1);
+                }}
+              >
+                Số Lượng <ArrowUpDown className="h-3 w-3 ml-1" />
+              </Button>
+              <Button
+                variant={slowMovingSortBy === 'value' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  if (slowMovingSortBy === 'value') {
+                    setSlowMovingSortOrder(slowMovingSortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setSlowMovingSortBy('value');
+                    setSlowMovingSortOrder('desc');
+                  }
+                  setSlowMovingPage(1);
+                }}
+              >
+                Giá Trị <ArrowUpDown className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {slowMovingIngredients.length === 0 ? (
@@ -270,40 +367,71 @@ const Inventory = () => {
                 <p>Không có hàng tồn chậm</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Tên NL</TableHead>
-                    <TableHead>Tồn Kho</TableHead>
-                    <TableHead>Giá Trị</TableHead>
-                    <TableHead>Số Ngày Tồn</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {slowMovingIngredients.slice(0, 5).map((ingredient) => {
-                    const purchaseDate = ingredient.last_purchase_date 
-                      ? new Date(ingredient.last_purchase_date) 
-                      : new Date(ingredient.created_at!);
-                    const daysSincePurchase = Math.floor(
-                      (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
-                    );
-                    const value = ingredient.current_stock * ingredient.cost_per_unit;
-                    
-                    return (
-                      <TableRow key={ingredient.id}>
-                        <TableCell className="font-medium">{ingredient.name}</TableCell>
-                        <TableCell>{ingredient.current_stock} {ingredient.unit}</TableCell>
-                        <TableCell>{value.toLocaleString()}₫</TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="border-warning text-warning">
-                            {daysSincePurchase} ngày
-                          </Badge>
-                        </TableCell>
-                      </TableRow>
-                    );
-                  })}
-                </TableBody>
-              </Table>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Tên NL</TableHead>
+                      <TableHead>Tồn Kho</TableHead>
+                      <TableHead>Giá Trị</TableHead>
+                      <TableHead>Số Ngày Tồn</TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedSlowMoving.map((ingredient) => {
+                      const purchaseDate = ingredient.last_purchase_date 
+                        ? new Date(ingredient.last_purchase_date) 
+                        : new Date(ingredient.created_at!);
+                      const daysSincePurchase = Math.floor(
+                        (new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24)
+                      );
+                      const value = ingredient.current_stock * ingredient.cost_per_unit;
+                      
+                      return (
+                        <TableRow key={ingredient.id}>
+                          <TableCell className="font-medium">{ingredient.name}</TableCell>
+                          <TableCell>{ingredient.current_stock} {ingredient.unit}</TableCell>
+                          <TableCell>{value.toLocaleString()}₫</TableCell>
+                          <TableCell>
+                            <Badge variant="outline" className="border-warning text-warning">
+                              {daysSincePurchase} ngày
+                            </Badge>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+                {totalSlowMovingPages > 1 && (
+                  <Pagination className="mt-4">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setSlowMovingPage(Math.max(1, slowMovingPage - 1))}
+                          className={slowMovingPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalSlowMovingPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setSlowMovingPage(page)}
+                            isActive={page === slowMovingPage}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setSlowMovingPage(Math.min(totalSlowMovingPages, slowMovingPage + 1))}
+                          className={slowMovingPage === totalSlowMovingPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
@@ -315,8 +443,40 @@ const Inventory = () => {
               Lịch Sử Nhập Xuất
             </CardTitle>
             <CardDescription>
-              20 giao dịch gần nhất
+              Tất cả giao dịch nhập xuất nguyên liệu
             </CardDescription>
+            <div className="flex gap-2 mt-4">
+              <Button
+                variant={historySortBy === 'date' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  if (historySortBy === 'date') {
+                    setHistorySortOrder(historySortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setHistorySortBy('date');
+                    setHistorySortOrder('desc');
+                  }
+                  setHistoryPage(1);
+                }}
+              >
+                Ngày <ArrowUpDown className="h-3 w-3 ml-1" />
+              </Button>
+              <Button
+                variant={historySortBy === 'quantity' ? 'default' : 'outline'}
+                size="sm"
+                onClick={() => {
+                  if (historySortBy === 'quantity') {
+                    setHistorySortOrder(historySortOrder === 'asc' ? 'desc' : 'asc');
+                  } else {
+                    setHistorySortBy('quantity');
+                    setHistorySortOrder('desc');
+                  }
+                  setHistoryPage(1);
+                }}
+              >
+                Số Lượng <ArrowUpDown className="h-3 w-3 ml-1" />
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
             {inventoryMovements.length === 0 ? (
@@ -325,38 +485,69 @@ const Inventory = () => {
                 <p>Chưa có lịch sử</p>
               </div>
             ) : (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Ngày</TableHead>
-                    <TableHead>Nguyên Liệu</TableHead>
-                    <TableHead>Loại</TableHead>
-                    <TableHead>Số Lượng</TableHead>
-                    <TableHead>Tham Chiếu</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {inventoryMovements.map((movement, index) => (
-                    <TableRow key={index}>
-                      <TableCell className="text-sm">
-                        {new Date(movement.date).toLocaleDateString('vi-VN')}
-                      </TableCell>
-                      <TableCell className="font-medium">{movement.ingredient_name}</TableCell>
-                      <TableCell>
-                        <Badge variant={movement.type === 'import' ? 'default' : 'secondary'}>
-                          {movement.type === 'import' ? 'Nhập' : 'Xuất'}
-                        </Badge>
-                      </TableCell>
-                      <TableCell>
-                        {movement.quantity} {movement.unit}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {movement.reference}
-                      </TableCell>
+              <>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>Ngày</TableHead>
+                      <TableHead>Nguyên Liệu</TableHead>
+                      <TableHead>Loại</TableHead>
+                      <TableHead>Số Lượng</TableHead>
+                      <TableHead>Tham Chiếu</TableHead>
                     </TableRow>
-                  ))}
-                </TableBody>
-              </Table>
+                  </TableHeader>
+                  <TableBody>
+                    {paginatedMovements.map((movement, index) => (
+                      <TableRow key={index}>
+                        <TableCell className="text-sm">
+                          {new Date(movement.date).toLocaleDateString('vi-VN')}
+                        </TableCell>
+                        <TableCell className="font-medium">{movement.ingredient_name}</TableCell>
+                        <TableCell>
+                          <Badge variant={movement.type === 'import' ? 'default' : 'secondary'}>
+                            {movement.type === 'import' ? 'Nhập' : 'Xuất'}
+                          </Badge>
+                        </TableCell>
+                        <TableCell>
+                          {movement.quantity} {movement.unit}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {movement.reference}
+                        </TableCell>
+                      </TableRow>
+                    ))}
+                  </TableBody>
+                </Table>
+                {totalHistoryPages > 1 && (
+                  <Pagination className="mt-4">
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setHistoryPage(Math.max(1, historyPage - 1))}
+                          className={historyPage === 1 ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                      {Array.from({ length: totalHistoryPages }, (_, i) => i + 1).map((page) => (
+                        <PaginationItem key={page}>
+                          <PaginationLink
+                            onClick={() => setHistoryPage(page)}
+                            isActive={page === historyPage}
+                            className="cursor-pointer"
+                          >
+                            {page}
+                          </PaginationLink>
+                        </PaginationItem>
+                      ))}
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setHistoryPage(Math.min(totalHistoryPages, historyPage + 1))}
+                          className={historyPage === totalHistoryPages ? "pointer-events-none opacity-50" : "cursor-pointer"}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                )}
+              </>
             )}
           </CardContent>
         </Card>
