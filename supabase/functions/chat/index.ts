@@ -20,9 +20,14 @@ serve(async (req) => {
 
     const authHeader = req.headers.get("authorization");
     const token = authHeader?.replace("Bearer ", "");
+    
+    // Client with user token for inserts/updates (needs user_id)
     const supabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, {
       global: { headers: { Authorization: `Bearer ${token}` } },
     });
+    
+    // Admin client with service role for reading data (bypasses RLS)
+    const adminSupabase = createClient(SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY);
 
     const systemPrompt = `Bạn là trợ lý AI thông minh cho hệ thống quản lý nhà hàng. Bạn có thể:
 - Trả lời câu hỏi và hỗ trợ người dùng
@@ -210,7 +215,7 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
           if (!userData.user) {
             result = { success: false, error: "Người dùng chưa đăng nhập" };
           } else {
-            const { data, error } = await supabase
+            const { data, error } = await adminSupabase
               .from("menu_items")
               .select("*")
               .eq("user_id", userData.user.id)
@@ -224,7 +229,7 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
           if (!userData.user) {
             result = { success: false, error: "Người dùng chưa đăng nhập" };
           } else {
-            const { data, error } = await supabase
+            const { data, error } = await adminSupabase
               .from("ingredients")
               .select("*")
               .eq("user_id", userData.user.id)
@@ -238,7 +243,7 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
           if (!userData.user) {
             result = { success: false, error: "Người dùng chưa đăng nhập" };
           } else {
-            const { data, error } = await supabase
+            const { data, error } = await adminSupabase
               .from("orders")
               .select("*, order_items(*, menu_item_id(name))")
               .eq("user_id", userData.user.id)
@@ -271,10 +276,10 @@ Hãy trả lời bằng tiếng Việt, thân thiện và chuyên nghiệp. Khi 
             }
 
             const [ordersResult, ingredientsResult, menuItemsResult, financialResult] = await Promise.all([
-              supabase.from("orders").select("*").eq("user_id", userData.user.id).gte("order_date", dateFilter),
-              supabase.from("ingredients").select("*").eq("user_id", userData.user.id),
-              supabase.from("menu_items").select("*").eq("user_id", userData.user.id),
-              supabase.from("financial_records").select("*").eq("user_id", userData.user.id).gte("record_date", dateFilter)
+              adminSupabase.from("orders").select("*").eq("user_id", userData.user.id).gte("order_date", dateFilter),
+              adminSupabase.from("ingredients").select("*").eq("user_id", userData.user.id),
+              adminSupabase.from("menu_items").select("*").eq("user_id", userData.user.id),
+              adminSupabase.from("financial_records").select("*").eq("user_id", userData.user.id).gte("record_date", dateFilter)
             ]);
 
             const totalRevenue = ordersResult.data?.reduce((sum, order) => sum + Number(order.total_amount || 0), 0) || 0;
