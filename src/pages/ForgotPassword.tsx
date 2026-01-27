@@ -34,8 +34,13 @@ const ForgotPassword = () => {
     }
 
     setLoading(true);
+    // Use Vercel domain for password reset redirect
+    const redirectUrl = import.meta.env.PROD 
+      ? 'https://rabbit-black.vercel.app/auth'
+      : `${window.location.origin}/auth`;
+    
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/auth`,
+      redirectTo: redirectUrl,
     });
 
     setLoading(false);
