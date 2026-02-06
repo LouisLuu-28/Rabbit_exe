@@ -3,10 +3,11 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Search, Upload } from "lucide-react";
+import { Plus, Search, Upload, Eye } from "lucide-react";
 import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
 import { ImportMenuItemsDialog } from "@/components/menu/ImportMenuItemsDialog";
@@ -19,6 +20,13 @@ interface MenuItem {
   price: number;
   category: string;
   is_available: boolean;
+  // Món chính
+  dish_style?: string; // món nước / món khô
+  dish_type?: string; // món chay / món mặn
+  // Món phụ & Tráng miệng
+  flavor_type?: string; // mặn / ngọt
+  // Đồ uống
+  drink_type?: string; // nước / nước_ngọt / nước_ép / cà_phê / trà / đồ uống có cồn / khác
 }
 
 const MenuPlanning = () => {
@@ -137,50 +145,89 @@ const MenuPlanning = () => {
           </CardContent>
         </Card>
       ) : (
-        <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-3" data-tutorial="menu-list">
-          {filteredMenuItems.map((item) => (
-            <Card key={item.id}>
-              <CardHeader>
-                <div className="flex items-start justify-between">
-                  <div className="flex-1">
-                    <div className="text-xs font-mono text-muted-foreground mb-1">{item.code || "-"}</div>
-                    <CardTitle className="text-lg">{item.name}</CardTitle>
-                  </div>
-                  {item.is_available ? (
-                    <Badge variant="default">Còn hàng</Badge>
-                  ) : (
-                    <Badge variant="destructive">Hết hàng</Badge>
-                  )}
-                </div>
-                <CardDescription>
-                  <Badge variant="outline" className="mt-1">
-                    {getCategoryLabel(item.category)}
-                  </Badge>
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
-                <p className="text-sm text-muted-foreground mb-3 line-clamp-2">
-                  {item.description || "Không có mô tả"}
-                </p>
-                <div className="flex items-center justify-between">
-                  <span className="text-2xl font-bold text-primary">
-                    {item.price.toLocaleString()}₫
-                  </span>
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={() => {
-                      setSelectedMenuItemId(item.id);
-                      setEditDialogOpen(true);
-                    }}
-                  >
-                    Chỉnh sửa
-                  </Button>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
-        </div>
+        <Card data-tutorial="menu-list">
+          <CardContent className="pt-6">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Mã Món</TableHead>
+                  <TableHead>Tên Món</TableHead>
+                  <TableHead>Danh Mục</TableHead>
+                  <TableHead>Thuộc Tính</TableHead>
+                  <TableHead className="text-right">Giá Bán</TableHead>
+                  <TableHead className="text-center">Trạng Thái</TableHead>
+                  <TableHead className="text-center">Thao Tác</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {filteredMenuItems.map((item) => (
+                  <TableRow key={item.id}>
+                    <TableCell className="font-mono text-sm">{item.code || "-"}</TableCell>
+                    <TableCell className="font-medium">{item.name}</TableCell>
+                    <TableCell>
+                      <Badge variant="outline">{getCategoryLabel(item.category)}</Badge>
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex flex-wrap gap-1">
+                        {/* Hiển thị thuộc tính theo danh mục */}
+                        {item.category === 'main' && item.dish_style && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.dish_style === 'noodle' ? 'Món nước' : 'Món khô'}
+                          </Badge>
+                        )}
+                        {item.category === 'main' && item.dish_type && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.dish_type === 'vegetarian' ? 'Món chay' : 'Món mặn'}
+                          </Badge>
+                        )}
+                        {(item.category === 'side' || item.category === 'dessert') && item.flavor_type && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.flavor_type === 'sweet' ? 'Ngọt' : 'Mặn'}
+                          </Badge>
+                        )}
+                        {item.category === 'drink' && item.drink_type && (
+                          <Badge variant="secondary" className="text-xs">
+                            {item.drink_type === 'water' ? 'Nước' : 
+                             item.drink_type === 'soda' ? 'Nước ngọt' :
+                             item.drink_type === 'juice' ? 'Nước ép' :
+                             item.drink_type === 'coffee' ? 'Cà phê' :
+                             item.drink_type === 'tea' ? 'Trà' :
+                             item.drink_type === 'alcohol' ? 'Đồ uống có cồn' : 'Khác'}
+                          </Badge>
+                        )}
+                        {!item.dish_style && !item.dish_type && !item.flavor_type && !item.drink_type && (
+                          <span className="text-xs text-muted-foreground">Chưa phân loại</span>
+                        )}
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-right font-semibold">
+                      {item.price.toLocaleString()}₫
+                    </TableCell>
+                    <TableCell className="text-center">
+                      {item.is_available ? (
+                        <Badge variant="default">Còn hàng</Badge>
+                      ) : (
+                        <Badge variant="destructive">Hết hàng</Badge>
+                      )}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <Button 
+                        variant="ghost" 
+                        size="sm"
+                        onClick={() => {
+                          setSelectedMenuItemId(item.id);
+                          setEditDialogOpen(true);
+                        }}
+                      >
+                        <Eye className="h-4 w-4" />
+                      </Button>
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </CardContent>
+        </Card>
       )}
 
       <AddMenuItemDialog

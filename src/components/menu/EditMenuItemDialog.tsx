@@ -27,6 +27,10 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
     price: "",
     category: "main",
     is_available: true,
+    dish_style: "",
+    dish_type: "",
+    flavor_type: "",
+    drink_type: "",
   });
   const [ingredients, setIngredients] = useState<any[]>([]);
 
@@ -54,6 +58,10 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
         price: data.price.toString(),
         category: data.category,
         is_available: data.is_available,
+        dish_style: data.dish_style || "",
+        dish_type: data.dish_type || "",
+        flavor_type: data.flavor_type || "",
+        drink_type: data.drink_type || "",
       });
     }
   };
@@ -93,6 +101,10 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
         price: parseFloat(menuItem.price),
         category: menuItem.category,
         is_available: menuItem.is_available,
+        dish_style: menuItem.dish_style || null,
+        dish_type: menuItem.dish_type || null,
+        flavor_type: menuItem.flavor_type || null,
+        drink_type: menuItem.drink_type || null,
       })
       .eq("id", menuItemId);
 
@@ -216,6 +228,90 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
                 </Select>
               </div>
             </div>
+
+            {/* Thuộc tính cho Món Chính */}
+            {menuItem.category === 'main' && (
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label htmlFor="dish_style">Kiểu Món</Label>
+                  <Select value={menuItem.dish_style} onValueChange={(value) => setMenuItem({ ...menuItem, dish_style: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn kiểu món" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="noodle">Món Nước</SelectItem>
+                      <SelectItem value="dry">Món Khô</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div>
+                  <Label htmlFor="dish_type">Loại Món</Label>
+                  <Select value={menuItem.dish_type} onValueChange={(value) => setMenuItem({ ...menuItem, dish_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại món" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vegetarian">Món Chay</SelectItem>
+                      <SelectItem value="meat">Món Mặn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+            )}
+
+            {/* Thuộc tính cho Món Phụ */}
+            {menuItem.category === 'side' && (
+              <div>
+                <Label htmlFor="flavor_type">Hương Vị</Label>
+                <Select value={menuItem.flavor_type} onValueChange={(value) => setMenuItem({ ...menuItem, flavor_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn hương vị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="savory">Mặn</SelectItem>
+                    <SelectItem value="sweet">Ngọt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Thuộc tính cho Tráng Miệng */}
+            {menuItem.category === 'dessert' && (
+              <div>
+                <Label htmlFor="flavor_type">Hương Vị</Label>
+                <Select value={menuItem.flavor_type} onValueChange={(value) => setMenuItem({ ...menuItem, flavor_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn hương vị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="savory">Mặn</SelectItem>
+                    <SelectItem value="sweet">Ngọt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Thuộc tính cho Đồ Uống */}
+            {menuItem.category === 'drink' && (
+              <div>
+                <Label htmlFor="drink_type">Loại Đồ Uống</Label>
+                <Select value={menuItem.drink_type} onValueChange={(value) => setMenuItem({ ...menuItem, drink_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại đồ uống" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="water">Nước</SelectItem>
+                    <SelectItem value="soda">Nước Ngọt</SelectItem>
+                    <SelectItem value="juice">Nước Ép</SelectItem>
+                    <SelectItem value="coffee">Cà Phê</SelectItem>
+                    <SelectItem value="tea">Trà</SelectItem>
+                    <SelectItem value="alcohol">Đồ Uống Có Cồn</SelectItem>
+                    <SelectItem value="other">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="flex items-center space-x-2">
               <Switch

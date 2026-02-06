@@ -7,11 +7,12 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
-import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History, ArrowUpDown, Upload } from "lucide-react";
+import { Plus, Package, AlertTriangle, Pencil, Search, TrendingDown, DollarSign, History, ArrowUpDown, Upload, Eye } from "lucide-react";
 import { AddIngredientDialog } from "@/components/inventory/AddIngredientDialog";
 import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialog";
 import { ImportIngredientsDialog } from "@/components/inventory/ImportIngredientsDialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 
 interface Ingredient {
   id: string;
@@ -32,10 +33,11 @@ interface Ingredient {
 interface InventoryMovement {
   date: string;
   ingredient_name: string;
-  type: 'import' | 'export';
+  type: 'import' | 'export' | 'restock';
   quantity: number;
   unit: string;
   reference: string;
+  cost?: number;
 }
 
 const Inventory = () => {
@@ -49,6 +51,8 @@ const Inventory = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
   const [inventoryMovements, setInventoryMovements] = useState<InventoryMovement[]>([]);
+  const [viewDialogOpen, setViewDialogOpen] = useState(false);
+  const [viewDialogData, setViewDialogData] = useState<{title: string, items: Ingredient[]}>({title: "", items: []});
   
   // Pagination and sorting states
   const [slowMovingPage, setSlowMovingPage] = useState(1);
@@ -92,21 +96,39 @@ const Inventory = () => {
   const fetchInventoryMovements = async (userId: string, ingredientsList: Ingredient[]) => {
     const movements: InventoryMovement[] = [];
     
-    // Fetch imports (new ingredients added)
-    ingredientsList.forEach((ingredient) => {
-      if (ingredient.created_at) {
+    // Fetch all logs from inventory_logs table
+    const { data: logs } = await supabase
+      .from("inventory_logs")
+      .select(`
+        id,
+        transaction_type,
+        quantity,
+        unit,
+        cost_per_unit,
+        reference,
+        notes,
+        created_at,
+        ingredients!inner(name)
+      `)
+      .eq("user_id", userId)
+      .order("created_at", { ascending: false })
+      .limit(100);
+
+    if (logs) {
+      for (const log of logs) {
         movements.push({
-          date: ingredient.created_at,
-          ingredient_name: ingredient.name,
-          type: 'import',
-          quantity: ingredient.current_stock,
-          unit: ingredient.unit,
-          reference: 'Nhập kho ban đầu'
+          date: log.created_at,
+          ingredient_name: (log.ingredients as any).name,
+          type: log.transaction_type as 'import' | 'export' | 'restock',
+          quantity: log.quantity,
+          unit: log.unit,
+          cost: log.cost_per_unit,
+          reference: log.reference || ''
         });
       }
-    });
+    }
 
-    // Fetch exports (ingredients used in orders)
+    // Fetch exports from orders (for backward compatibility)
     const { data: orders } = await supabase
       .from("orders")
       .select(`
@@ -184,6 +206,17 @@ const Inventory = () => {
   const lowStockCount = ingredients.filter(i => i.current_stock <= i.min_stock).length;
   const outOfStockCount = ingredients.filter(i => i.current_stock === 0).length;
   const totalValue = ingredients.reduce((sum, i) => sum + (i.current_stock * i.cost_per_unit), 0);
+  
+  // Calculate ingredients about to expire (within 7 days)
+  const expiringIngredients = ingredients.filter(ingredient => {
+    if (!ingredient.expiration_date) return false;
+    const expirationDate = new Date(ingredient.expiration_date);
+    const today = new Date();
+    const daysUntilExpiration = Math.floor(
+      (expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24)
+    );
+    return daysUntilExpiration >= 0 && daysUntilExpiration <= 7;
+  });
   
   // Calculate slow-moving inventory (over 10 days old)
   const slowMovingIngredients = ingredients.filter(ingredient => {
@@ -276,36 +309,71 @@ const Inventory = () => {
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium flex items-center gap-2">
-              <DollarSign className="h-4 w-4" />
-              Tổng Giá Trị Tồn Kho
+              {/* <AlertTriangle className="h-4 w-4" /> */}
+              Nguyên liệu sắp hết hạn
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalValue.toLocaleString()}₫</div>
-            <p className="text-xs text-muted-foreground mt-1">Giá trị hiện tại</p>
+            <div className="text-2xl font-bold text-orange-500">{expiringIngredients.length}</div>
+            <p className="text-xs text-muted-foreground mt-1">Trong vòng 7 ngày</p>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute bottom-2 right-2 h-6 w-6"
+              onClick={() => {
+                setViewDialogData({title: "Nguyên liệu sắp hết hạn", items: expiringIngredients});
+                setViewDialogOpen(true);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Sắp Hết Hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-warning">{lowStockCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Cần chú ý</p>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute bottom-2 right-2 h-6 w-6"
+              onClick={() => {
+                const lowStockItems = ingredients.filter(i => i.current_stock <= i.min_stock && i.current_stock > 0);
+                setViewDialogData({title: "Sắp Hết Hàng", items: lowStockItems});
+                setViewDialogOpen(true);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
 
-        <Card>
+        <Card className="relative">
           <CardHeader className="pb-3">
             <CardTitle className="text-sm font-medium">Hết Hàng</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold text-destructive">{outOfStockCount}</div>
             <p className="text-xs text-muted-foreground mt-1">Cần mua gấp</p>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="absolute bottom-2 right-2 h-6 w-6"
+              onClick={() => {
+                const outOfStockItems = ingredients.filter(i => i.current_stock === 0);
+                setViewDialogData({title: "Hết Hàng", items: outOfStockItems});
+                setViewDialogOpen(true);
+              }}
+            >
+              <Eye className="h-4 w-4" />
+            </Button>
           </CardContent>
         </Card>
       </div>
@@ -512,8 +580,8 @@ const Inventory = () => {
                         </TableCell>
                         <TableCell className="font-medium">{movement.ingredient_name}</TableCell>
                         <TableCell>
-                          <Badge variant={movement.type === 'import' ? 'default' : 'secondary'}>
-                            {movement.type === 'import' ? 'Nhập' : 'Xuất'}
+                          <Badge variant={movement.type === 'import' || movement.type === 'restock' ? 'default' : 'secondary'}>
+                            {movement.type === 'import' ? 'Nhập' : movement.type === 'restock' ? 'Bổ sung' : 'Xuất'}
                           </Badge>
                         </TableCell>
                         <TableCell>
@@ -610,11 +678,11 @@ const Inventory = () => {
                   <TableHead>Tên Nguyên Liệu</TableHead>
                   <TableHead>Danh Mục</TableHead>
                   <TableHead>Tồn Kho</TableHead>
-                  <TableHead>Ngưỡng Tối Thiểu</TableHead>
                   <TableHead>Giá / Đơn Vị</TableHead>
-                  <TableHead>Tổng Giá Trị</TableHead>
-                  <TableHead>Trạng Thái</TableHead>
+                  <TableHead>Nhà Cung Cấp</TableHead>
+                  <TableHead>Ngày Nhập</TableHead>
                   <TableHead>Hạn Sử Dụng</TableHead>
+                  <TableHead>Trạng Thái</TableHead>
                   <TableHead>Thao Tác</TableHead>
                 </TableRow>
               </TableHeader>
@@ -632,28 +700,32 @@ const Inventory = () => {
                       <TableCell>
                         {ingredient.current_stock} {ingredient.unit}
                       </TableCell>
-                      <TableCell>
-                        {ingredient.min_stock} {ingredient.unit}
-                      </TableCell>
                       <TableCell>{ingredient.cost_per_unit.toLocaleString()}₫</TableCell>
-                      <TableCell className="font-semibold">
-                        {(ingredient.current_stock * ingredient.cost_per_unit).toLocaleString()}₫
+                      <TableCell>
+                        <span className="text-sm">{ingredient.supplier_info || <span className="text-muted-foreground">Chưa có</span>}</span>
                       </TableCell>
                       <TableCell>
-                        {isOutOfStock ? (
-                          <Badge variant="destructive" className="gap-1">
-                            <AlertTriangle className="h-3 w-3" />
-                            Hết hàng
-                          </Badge>
-                        ) : isLowStock ? (
-                          <Badge variant="outline" className="gap-1 border-warning text-warning">
-                            <AlertTriangle className="h-3 w-3" />
-                            Sắp hết
-                          </Badge>
-                        ) : (
-                          <Badge variant="default">Đủ hàng</Badge>
-                        )}
-                       </TableCell>
+                        {(() => {
+                          const purchaseDate = ingredient.last_purchase_date ? new Date(ingredient.last_purchase_date) : (ingredient.created_at ? new Date(ingredient.created_at) : null);
+                          if (!purchaseDate) return <span className="text-muted-foreground text-sm">Chưa có</span>;
+                          
+                          const daysSincePurchase = Math.floor((new Date().getTime() - purchaseDate.getTime()) / (1000 * 60 * 60 * 24));
+                          const isNewStock = daysSincePurchase <= 3;
+                          
+                          return (
+                            <div className="flex flex-col gap-1">
+                              <span className="text-sm">{purchaseDate.toLocaleDateString('vi-VN')}</span>
+                              {isNewStock ? (
+                                <Badge variant="default" className="text-xs w-fit">mới nhập</Badge>
+                              ) : daysSincePurchase > 10 ? (
+                                <span className="text-xs text-orange-600 font-medium">{daysSincePurchase} ngày</span>
+                              ) : (
+                                <span className="text-xs text-muted-foreground">{daysSincePurchase} ngày</span>
+                              )}
+                            </div>
+                          );
+                        })()}
+                      </TableCell>
                        <TableCell>
                          {ingredient.expiration_date ? (
                            (() => {
@@ -671,6 +743,21 @@ const Inventory = () => {
                            })()
                          ) : (
                            <span className="text-muted-foreground text-sm">Chưa có</span>
+                         )}
+                       </TableCell>
+                       <TableCell>
+                         {isOutOfStock ? (
+                           <Badge variant="destructive" className="gap-1">
+                             <AlertTriangle className="h-3 w-3" />
+                             Hết hàng
+                           </Badge>
+                         ) : isLowStock ? (
+                           <Badge variant="outline" className="gap-1 border-warning text-warning">
+                             <AlertTriangle className="h-3 w-3" />
+                             Sắp hết
+                           </Badge>
+                         ) : (
+                           <Badge variant="default">Đủ hàng</Badge>
                          )}
                        </TableCell>
                        <TableCell>
@@ -712,6 +799,65 @@ const Inventory = () => {
         ingredientId={selectedIngredientId}
         onSuccess={fetchIngredients}
       />
+
+      <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
+        <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{viewDialogData.title}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-2">
+            {viewDialogData.items.length === 0 ? (
+              <p className="text-muted-foreground text-sm">Không có nguyên liệu nào</p>
+            ) : (
+              <div className="space-y-2">
+                {viewDialogData.items.map((item) => {
+                  // Calculate days until expiration
+                  const getDaysUntilExpiration = () => {
+                    if (!item.expiration_date) return null;
+                    const today = new Date();
+                    const expirationDate = new Date(item.expiration_date);
+                    return Math.floor((expirationDate.getTime() - today.getTime()) / (1000 * 60 * 60 * 24));
+                  };
+
+                  const daysUntilExpiry = getDaysUntilExpiration();
+
+                  return (
+                    <div key={item.id} className="p-3 border rounded-lg hover:bg-muted/50 transition-colors">
+                      <div className="flex justify-between items-start">
+                        <div className="flex-1">
+                          <p className="font-medium">{item.name}</p>
+                          <div className="text-sm text-muted-foreground mt-1 space-y-1">
+                            {/* Show expiration info for expiring ingredients */}
+                            {viewDialogData.title === "Nguyên liệu sắp hết hạn" && daysUntilExpiry !== null && (
+                              <p className="text-orange-600 font-medium">
+                                {daysUntilExpiry === 0 ? "Hết hạn hôm nay" : 
+                                 daysUntilExpiry < 0 ? `Đã hết hạn ${Math.abs(daysUntilExpiry)} ngày trước` :
+                                 `Còn ${daysUntilExpiry} ngày`}
+                              </p>
+                            )}
+                            {/* Show stock info for low/out of stock */}
+                            {(viewDialogData.title === "Sắp Hết Hàng" || viewDialogData.title === "Hết Hàng") && (
+                              <p>
+                                <span className={item.current_stock === 0 ? "text-destructive font-medium" : "text-warning font-medium"}>
+                                  Tồn kho: {item.current_stock} {item.unit}
+                                </span>
+                                {item.current_stock > 0 && (
+                                  <span className="text-muted-foreground"> / Ngưỡng: {item.min_stock} {item.unit}</span>
+                                )}
+                              </p>
+                            )}
+                            <p>Mã: {item.code}</p>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };

@@ -38,6 +38,13 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     price: "",
     category: "main",
     is_available: true,
+    // Món chính
+    dish_style: "",
+    dish_type: "",
+    // Món phụ & Tráng miệng
+    flavor_type: "",
+    // Đồ uống
+    drink_type: "",
   });
   const [ingredientLinks, setIngredientLinks] = useState<IngredientLink[]>([]);
 
@@ -158,6 +165,10 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
       price: "",
       category: "main",
       is_available: true,
+      dish_style: "",
+      dish_type: "",
+      flavor_type: "",
+      drink_type: "",
     });
     setIngredientLinks([]);
     setLoading(false);
@@ -208,6 +219,90 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
                 </SelectContent>
               </Select>
             </div>
+
+            {/* Thuộc tính cho Món Chính */}
+            {formData.category === 'main' && (
+              <>
+                <div className="space-y-2">
+                  <Label htmlFor="dish_style">Kiểu Món</Label>
+                  <Select value={formData.dish_style} onValueChange={(value) => setFormData({ ...formData, dish_style: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn kiểu món" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="noodle">Món Nước</SelectItem>
+                      <SelectItem value="dry">Món Khô</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="dish_type">Loại Món</Label>
+                  <Select value={formData.dish_type} onValueChange={(value) => setFormData({ ...formData, dish_type: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Chọn loại món" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="vegetarian">Món Chay</SelectItem>
+                      <SelectItem value="meat">Món Mặn</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </>
+            )}
+
+            {/* Thuộc tính cho Món Phụ */}
+            {formData.category === 'side' && (
+              <div className="space-y-2">
+                <Label htmlFor="flavor_type">Hương Vị</Label>
+                <Select value={formData.flavor_type} onValueChange={(value) => setFormData({ ...formData, flavor_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn hương vị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="savory">Mặn</SelectItem>
+                    <SelectItem value="sweet">Ngọt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Thuộc tính cho Tráng Miệng */}
+            {formData.category === 'dessert' && (
+              <div className="space-y-2">
+                <Label htmlFor="flavor_type">Hương Vị</Label>
+                <Select value={formData.flavor_type} onValueChange={(value) => setFormData({ ...formData, flavor_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn hương vị" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="savory">Mặn</SelectItem>
+                    <SelectItem value="sweet">Ngọt</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+
+            {/* Thuộc tính cho Đồ Uống */}
+            {formData.category === 'drink' && (
+              <div className="space-y-2">
+                <Label htmlFor="drink_type">Loại Đồ Uống</Label>
+                <Select value={formData.drink_type} onValueChange={(value) => setFormData({ ...formData, drink_type: value })}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Chọn loại đồ uống" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="water">Nước</SelectItem>
+                    <SelectItem value="soda">Nước Ngọt</SelectItem>
+                    <SelectItem value="juice">Nước Ép</SelectItem>
+                    <SelectItem value="coffee">Cà Phê</SelectItem>
+                    <SelectItem value="tea">Trà</SelectItem>
+                    <SelectItem value="alcohol">Đồ Uống Có Cồn</SelectItem>
+                    <SelectItem value="other">Khác</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
 
             <div className="space-y-2">
               <Label htmlFor="price">Giá Bán (₫) *</Label>

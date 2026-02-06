@@ -1,7 +1,8 @@
-import { Home, ShoppingCart, CalendarDays, Package, DollarSign, User, LogOut } from "lucide-react";
+import { Home, ShoppingCart, CalendarDays, Package, DollarSign, User, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { Button } from "@/components/ui/button";
 import rabbitLogo from "@/assets/rabbit-logo.jpg";
 import {
   Sidebar,
@@ -13,6 +14,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
   SidebarFooter,
+  SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
 
@@ -26,7 +28,7 @@ const menuItems = [
 ];
 
 export function AppSidebar() {
-  const { state } = useSidebar();
+  const { state, toggleSidebar } = useSidebar();
   const navigate = useNavigate();
   const { toast } = useToast();
   const collapsed = state === "collapsed";
@@ -46,18 +48,43 @@ export function AppSidebar() {
 
   return (
     <Sidebar className={collapsed ? "w-14" : "w-64"} collapsible="icon">
-      <SidebarContent>
-        <div className="p-4 flex items-center gap-2">
-          {!collapsed && (
-            <>
-              <img src={rabbitLogo} alt="Rabbit Logo" className="w-10 h-10 rounded-full object-cover" />
-              <div>
-                <h2 className="font-bold text-lg">Rabbit EMS System</h2>
-                <p className="text-xs text-muted-foreground">Quản lý doanh nghiệp</p>
+      <SidebarHeader>
+        {!collapsed ? (
+          <div className="p-4 space-y-3">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <img src={rabbitLogo} alt="Rabbit Logo" className="w-10 h-10 rounded-full object-cover" />
+                <div>
+                  <h2 className="font-bold text-lg">Rabbit EMS</h2>
+                  <p className="text-xs text-muted-foreground">System</p>
+                </div>
               </div>
-            </>
-          )}
-        </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={toggleSidebar}
+                className="h-8 w-8 shrink-0"
+              >
+                <PanelLeftClose className="h-4 w-4" />
+              </Button>
+            </div>
+            <p className="text-xs text-muted-foreground">Quản lý doanh nghiệp</p>
+          </div>
+        ) : (
+          <div className="py-4 flex flex-col items-center gap-2">
+            <img src={rabbitLogo} alt="Rabbit Logo" className="w-8 h-8 rounded-full object-cover" />
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              onClick={toggleSidebar}
+              className="h-6 w-6"
+            >
+              <PanelLeft className="h-3 w-3" />
+            </Button>
+          </div>
+        )}
+      </SidebarHeader>
+      <SidebarContent>
 
         <SidebarGroup>
           <SidebarGroupLabel>Menu Chính</SidebarGroupLabel>

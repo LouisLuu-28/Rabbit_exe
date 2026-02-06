@@ -7,6 +7,8 @@ import { BrowserRouter, Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { AppSidebar } from "@/components/AppSidebar";
 import { Tutorial } from "@/components/Tutorial";
+import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 import { supabase } from "@/integrations/supabase/client";
 import Index from "./pages/Index";
@@ -28,7 +30,7 @@ const DashboardLayout = ({ children }: { children: React.ReactNode }) => (
       <AppSidebar />
       <main className="flex-1 flex flex-col">
         <header className="h-14 border-b flex items-center px-4 bg-card">
-          <SidebarTrigger />
+          <p className="text-sm font-medium">Hệ Thống Quản Lý Rabbit EMS</p>
         </header>
         <div className="flex-1 overflow-auto">
           {children}
