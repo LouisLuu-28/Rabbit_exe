@@ -120,6 +120,53 @@ export type Database = {
           },
         ]
       }
+      inventory_logs: {
+        Row: {
+          cost_per_unit: number | null
+          created_at: string
+          id: string
+          ingredient_id: string
+          notes: string | null
+          quantity: number
+          reference: string | null
+          transaction_type: string
+          unit: string
+          user_id: string
+        }
+        Insert: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          ingredient_id: string
+          notes?: string | null
+          quantity: number
+          reference?: string | null
+          transaction_type: string
+          unit: string
+          user_id: string
+        }
+        Update: {
+          cost_per_unit?: number | null
+          created_at?: string
+          id?: string
+          ingredient_id?: string
+          notes?: string | null
+          quantity?: number
+          reference?: string | null
+          transaction_type?: string
+          unit?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "inventory_logs_ingredient_id_fkey"
+            columns: ["ingredient_id"]
+            isOneToOne: false
+            referencedRelation: "ingredients"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       menu_item_ingredients: {
         Row: {
           created_at: string | null
