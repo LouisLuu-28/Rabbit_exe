@@ -5,8 +5,88 @@ import { Input } from "@/components/ui/input";
 import { Upload, Download, AlertCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import * as XLSX from 'xlsx';
+import * as XLSX from "xlsx";
 import { Alert, AlertDescription } from "@/components/ui/alert";
+
+const CATEGORY_CHOICES = [
+  { label: "Rau Củ", value: "rau_cu", aliases: ["rau cu", "rau_cu", "rau củ"] },
+  { label: "Thịt", value: "thit", aliases: ["thit", "thịt", "thit heo", "thịt heo"] },
+  { label: "Cá & Hải Sản", value: "ca", aliases: ["ca", "cá", "hai san", "hải sản"] },
+  { label: "Gia Vị", value: "gia_vi", aliases: ["gia vi", "gia_vi", "gia vị"] },
+  { label: "Bột", value: "bot", aliases: ["bot", "bột"] },
+  { label: "Dầu Ăn", value: "dau", aliases: ["dau", "dầu", "dầu ăn"] },
+  { label: "Đồ Khô", value: "do_kho", aliases: ["do kho", "do_kho", "đồ khô"] },
+  { label: "Khác", value: "khac", aliases: ["khac", "khác"] }
+];
+
+const UNIT_CHOICES = [
+  { label: "Kilôgam (kg)", value: "kg", aliases: ["kg", "kilogram", "kilo", "kilôgam"] },
+  { label: "Gam (g)", value: "g", aliases: ["g", "gram", "gam"] },
+  { label: "Lít (l)", value: "l", aliases: ["l", "lit", "lít"] },
+  { label: "Mililít (ml)", value: "ml", aliases: ["ml", "mililiter", "milliliter", "mililít"] },
+  { label: "Chai", value: "chai", aliases: ["chai", "bottle"] },
+  { label: "Cái", value: "cai", aliases: ["cai", "cái", "unit"] },
+  { label: "Gói", value: "goi", aliases: ["goi", "gói"] },
+  { label: "Hộp", value: "hop", aliases: ["hop", "hộp", "box"] },
+  { label: "Thùng", value: "thung", aliases: ["thung", "thùng", "carton"] }
+];
+
+const CATEGORY_LABELS = CATEGORY_CHOICES.map((choice) => choice.label);
+const UNIT_LABELS = UNIT_CHOICES.map((choice) => choice.label);
+const MAX_TEMPLATE_ROWS = 200;
+
+const buildOptionMap = (choices: { label: string; value: string; aliases?: string[] }[]) => {
+  const map: Record<string, string> = {};
+  choices.forEach(({ label, value, aliases = [] }) => {
+    map[value.toLowerCase()] = value;
+    map[label.toLowerCase()] = value;
+    aliases.forEach((alias) => {
+      map[alias.toLowerCase()] = value;
+    });
+  });
+  return map;
+};
+
+const categoryMap = buildOptionMap(CATEGORY_CHOICES);
+const unitMap = buildOptionMap(UNIT_CHOICES);
+
+const sanitizeString = (value: unknown) =>
+  typeof value === "string" ? value.trim() : value ? String(value).trim() : "";
+
+const parseNumber = (value: unknown) => {
+  const numeric = Number(value);
+  return Number.isFinite(numeric) ? numeric : 0;
+};
+
+const normalizeCategory = (category: string): string => {
+  const normalized = sanitizeString(category).toLowerCase();
+  return categoryMap[normalized] || "khac";
+};
+
+const normalizeUnit = (unit?: string): string => {
+  const normalized = sanitizeString(unit).toLowerCase();
+  return unitMap[normalized] || "kg";
+};
+
+const normalizeDateValue = (value: unknown) => {
+  if (!value) return null;
+  if (value instanceof Date) {
+    return value.toISOString().split("T")[0];
+  }
+  const sanitized = sanitizeString(value);
+  if (!sanitized) return null;
+  const parsed = new Date(sanitized);
+  return Number.isNaN(parsed.getTime()) ? sanitized : parsed.toISOString().split("T")[0];
+};
+
+const buildListFormula = (options: string[]) => `"${options.join(",")}"`;
+
+const createDataValidation = (range: string, options: string[]) => ({
+  sqref: range,
+  type: "list" as const,
+  allowBlank: true,
+  formulas: [buildListFormula(options)]
+});
 
 interface ImportIngredientsDialogProps {
   open: boolean;
@@ -22,9 +102,10 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
   const downloadTemplate = () => {
     const template = [
       {
+        "Mã Nguyên Liệu": "NL0001",
         "Tên Nguyên Liệu": "Thịt Heo",
-        "Danh Mục": "thit",
-        "Đơn Vị": "kg",
+        "Danh Mục": CATEGORY_CHOICES.find((choice) => choice.value === "thit")?.label ?? "Thịt",
+        "Đơn Vị": UNIT_CHOICES.find((choice) => choice.value === "kg")?.label ?? "Kilôgam (kg)",
         "Tồn Kho": 10,
         "Ngưỡng Tối Thiểu": 5,
         "Giá/Đơn Vị": 120000,
@@ -33,9 +114,10 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
         "Thông Tin NCC": "Công ty ABC"
       },
       {
-        "Tên Nguyên Liệu": "Cà Rót",
-        "Danh Mục": "rau_cu",
-        "Đơn Vị": "kg",
+        "Mã Nguyên Liệu": "NL0002",
+        "Tên Nguyên Liệu": "Cà Rốt",
+        "Danh Mục": CATEGORY_CHOICES.find((choice) => choice.value === "rau_cu")?.label ?? "Rau Củ",
+        "Đơn Vị": UNIT_CHOICES.find((choice) => choice.value === "kg")?.label ?? "Kilôgam (kg)",
         "Tồn Kho": 20,
         "Ngưỡng Tối Thiểu": 10,
         "Giá/Đơn Vị": 15000,
@@ -46,8 +128,33 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
     ];
 
     const ws = XLSX.utils.json_to_sheet(template);
+    ws["!dataValidation"] = [
+      createDataValidation(`C2:C${MAX_TEMPLATE_ROWS}`, CATEGORY_LABELS),
+      createDataValidation(`D2:D${MAX_TEMPLATE_ROWS}`, UNIT_LABELS)
+    ];
+
+    const instructions = [
+      ["HƯỚNG DẪN NHẬP DỮ LIỆU"],
+      [""],
+      ["Cột", "Bắt buộc", "Ghi chú"],
+      ["Mã Nguyên Liệu", "Có", "Mã duy nhất, tối đa 50 ký tự"],
+      ["Tên Nguyên Liệu", "Có", "Tên hiển thị trong kho"],
+      ["Danh Mục", "Có", `Chọn từ danh sách: ${CATEGORY_LABELS.join(", ")}`],
+      ["Đơn Vị", "Có", `Chọn từ danh sách: ${UNIT_LABELS.join(", ")}`],
+      ["Tồn Kho", "Có", "Số lượng hiện có (số)"],
+      ["Ngưỡng Tối Thiểu", "Có", "Số lượng cảnh báo (số)"],
+      ["Giá/Đơn Vị", "Có", "Giá nhập (số)"],
+      ["Ngày Sản Xuất", "Không", "Định dạng YYYY-MM-DD"],
+      ["Hạn Sử Dụng", "Không", "Định dạng YYYY-MM-DD"],
+      ["Thông Tin NCC", "Không", "Tên nhà cung cấp"],
+      [""],
+      ["Lưu ý", "", "Không xóa dòng tiêu đề. Các ô Danh Mục và Đơn Vị có danh sách lựa chọn."]
+    ];
+
+    const instructionSheet = XLSX.utils.aoa_to_sheet(instructions);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Nguyên Liệu");
+    XLSX.utils.book_append_sheet(wb, instructionSheet, "Huong Dan");
     XLSX.writeFile(wb, "mau_nhap_nguyen_lieu.xlsx");
   };
 
@@ -55,32 +162,6 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
     if (e.target.files && e.target.files[0]) {
       setFile(e.target.files[0]);
     }
-  };
-
-  const categoryMap: Record<string, string> = {
-    "rau_cu": "rau_cu",
-    "rau củ": "rau_cu",
-    "thit": "thit",
-    "thịt": "thit",
-    "ca": "ca",
-    "cá": "ca",
-    "hải sản": "ca",
-    "gia_vi": "gia_vi",
-    "gia vị": "gia_vi",
-    "bot": "bot",
-    "bột": "bot",
-    "dau": "dau",
-    "dầu": "dau",
-    "dầu ăn": "dau",
-    "do_kho": "do_kho",
-    "đồ khô": "do_kho",
-    "khac": "khac",
-    "khác": "khac"
-  };
-
-  const normalizeCategory = (category: string): string => {
-    const normalized = category.toLowerCase().trim();
-    return categoryMap[normalized] || "khac";
   };
 
   const handleUpload = async () => {
@@ -97,9 +178,9 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
 
     try {
       const data = await file.arrayBuffer();
-      const workbook = XLSX.read(data);
+      const workbook = XLSX.read(data, { cellDates: true });
       const worksheet = workbook.Sheets[workbook.SheetNames[0]];
-      const jsonData = XLSX.utils.sheet_to_json(worksheet);
+      const jsonData = XLSX.utils.sheet_to_json(worksheet, { defval: "" });
 
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -109,25 +190,27 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
       let successCount = 0;
       let errorCount = 0;
 
-      for (const row of jsonData as any[]) {
+      for (const [index, row] of (jsonData as Record<string, unknown>[]).entries()) {
         try {
-          // Get next code
-          const { data: codeData } = await supabase.rpc('generate_ingredient_code', {
-            p_user_id: user.id
-          });
+          const code = sanitizeString(row["Mã Nguyên Liệu"]);
+          const name = sanitizeString(row["Tên Nguyên Liệu"]);
+
+          if (!code || !name) {
+            throw new Error(`Thiếu mã hoặc tên nguyên liệu tại dòng ${index + 2}`);
+          }
 
           const ingredient = {
             user_id: user.id,
-            code: codeData,
-            name: row["Tên Nguyên Liệu"],
-            category: normalizeCategory(row["Danh Mục"] || "khac"),
-            unit: row["Đơn Vị"] || "kg",
-            current_stock: Number(row["Tồn Kho"]) || 0,
-            min_stock: Number(row["Ngưỡng Tối Thiểu"]) || 0,
-            cost_per_unit: Number(row["Giá/Đơn Vị"]) || 0,
-            manufacture_date: row["Ngày Sản Xuất"] || null,
-            expiration_date: row["Hạn Sử Dụng"] || null,
-            supplier_info: row["Thông Tin NCC"] || null,
+            code,
+            name,
+            category: normalizeCategory((row["Danh Mục"] as string) || "khac"),
+            unit: normalizeUnit(row["Đơn Vị"] as string),
+            current_stock: parseNumber(row["Tồn Kho"]),
+            min_stock: parseNumber(row["Ngưỡng Tối Thiểu"]),
+            cost_per_unit: parseNumber(row["Giá/Đơn Vị"]),
+            manufacture_date: normalizeDateValue(row["Ngày Sản Xuất"]),
+            expiration_date: normalizeDateValue(row["Hạn Sử Dụng"]),
+            supplier_info: sanitizeString(row["Thông Tin NCC"]) || null,
             last_purchase_date: new Date().toISOString().split('T')[0]
           };
 
@@ -181,7 +264,7 @@ export const ImportIngredientsDialog = ({ open, onOpenChange, onSuccess }: Impor
           <Alert>
             <AlertCircle className="h-4 w-4" />
             <AlertDescription>
-              File Excel cần có các cột: Tên Nguyên Liệu, Danh Mục, Đơn Vị, Tồn Kho, Ngưỡng Tối Thiểu, Giá/Đơn Vị
+              File Excel cần có các cột: Mã Nguyên Liệu, Tên Nguyên Liệu, Danh Mục, Đơn Vị, Tồn Kho, Ngưỡng Tối Thiểu, Giá/Đơn Vị
             </AlertDescription>
           </Alert>
 
