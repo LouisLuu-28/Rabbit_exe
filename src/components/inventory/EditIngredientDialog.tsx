@@ -161,6 +161,7 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
                 id="name"
                 value={ingredient.name}
                 onChange={(e) => setIngredient({ ...ingredient, name: e.target.value })}
+                maxLength={200}
                 required
               />
             </div>
@@ -272,6 +273,7 @@ export function EditIngredientDialog({ open, onOpenChange, ingredientId, onSucce
                 value={ingredient.supplier_info}
                 onChange={(e) => setIngredient({ ...ingredient, supplier_info: e.target.value })}
                 placeholder="Tên, SĐT, địa chỉ..."
+                maxLength={500}
               />
             </div>
 
