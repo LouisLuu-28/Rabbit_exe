@@ -212,6 +212,10 @@ export type Database = {
           code: string | null
           created_at: string | null
           description: string | null
+          dish_style: string | null
+          dish_type: string | null
+          drink_type: string | null
+          flavor_type: string | null
           id: string
           is_available: boolean | null
           name: string
@@ -224,6 +228,10 @@ export type Database = {
           code?: string | null
           created_at?: string | null
           description?: string | null
+          dish_style?: string | null
+          dish_type?: string | null
+          drink_type?: string | null
+          flavor_type?: string | null
           id?: string
           is_available?: boolean | null
           name: string
@@ -236,6 +244,10 @@ export type Database = {
           code?: string | null
           created_at?: string | null
           description?: string | null
+          dish_style?: string | null
+          dish_type?: string | null
+          drink_type?: string | null
+          flavor_type?: string | null
           id?: string
           is_available?: boolean | null
           name?: string

@@ -278,7 +278,7 @@ const Financial = () => {
         id: record.id,
         record_date: recordDate,
         dateKey: normalizeDateKey(recordDate),
-        type: record.type,
+        type: record.type as FinancialType,
         amount: Number(record.amount) || 0,
         category: record.category || (record.type === "revenue" ? "Doanh thu khác" : "Chi phí khác"),
         description: record.description,
