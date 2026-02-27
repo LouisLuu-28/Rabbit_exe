@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Plus, Trash2 } from "lucide-react";
+import { Plus, Trash2, ImagePlus } from "lucide-react";
 
 interface Ingredient {
   id: string;
@@ -31,6 +31,8 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
   const { toast } = useToast();
   const [loading, setLoading] = useState(false);
   const [ingredients, setIngredients] = useState<Ingredient[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [formData, setFormData] = useState({
     code: "",
     name: "",
@@ -38,12 +40,9 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     price: "",
     category: "main",
     is_available: true,
-    // Món chính
     dish_style: "",
     dish_type: "",
-    // Món phụ & Tráng miệng
     flavor_type: "",
-    // Đồ uống
     drink_type: "",
   });
   const [ingredientLinks, setIngredientLinks] = useState<IngredientLink[]>([]);
@@ -101,6 +100,31 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
     setIngredientLinks(newLinks);
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Lỗi", description: "Hình ảnh không được vượt quá 5MB", variant: "destructive" });
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
+  const uploadImage = async (userId: string, menuItemId: string): Promise<string | null> => {
+    if (!imageFile) return null;
+    const ext = imageFile.name.split('.').pop();
+    const filePath = `${userId}/${menuItemId}.${ext}`;
+    const { error } = await supabase.storage.from('menu-images').upload(filePath, imageFile, { upsert: true });
+    if (error) {
+      console.error('Upload error:', error);
+      return null;
+    }
+    const { data: { publicUrl } } = supabase.storage.from('menu-images').getPublicUrl(filePath);
+    return publicUrl;
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
@@ -127,6 +151,14 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
       });
       setLoading(false);
       return;
+    }
+
+    // Upload image if provided
+    if (imageFile) {
+      const imageUrl = await uploadImage(user.id, menuItem.id);
+      if (imageUrl) {
+        await supabase.from("menu_items").update({ image_url: imageUrl } as any).eq("id", menuItem.id);
+      }
     }
 
     // Create ingredient links if any
@@ -171,6 +203,8 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
       drink_type: "",
     });
     setIngredientLinks([]);
+    setImageFile(null);
+    setImagePreview(null);
     setLoading(false);
   };
 
@@ -315,6 +349,30 @@ export function AddMenuItemDialog({ open, onOpenChange, onSuccess }: AddMenuItem
                 onChange={(e) => setFormData({ ...formData, price: e.target.value })}
                 required
               />
+            </div>
+
+            <div className="space-y-2 col-span-2">
+              <Label>Hình Ảnh Món Ăn</Label>
+              <div className="flex items-center gap-4">
+                {imagePreview ? (
+                  <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreview(null); }}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-24 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground mt-1">Thêm ảnh</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
             </div>
 
             <div className="space-y-2 col-span-2">

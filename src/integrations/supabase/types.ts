@@ -217,6 +217,7 @@ export type Database = {
           drink_type: string | null
           flavor_type: string | null
           id: string
+          image_url: string | null
           is_available: boolean | null
           name: string
           price: number
@@ -233,6 +234,7 @@ export type Database = {
           drink_type?: string | null
           flavor_type?: string | null
           id?: string
+          image_url?: string | null
           is_available?: boolean | null
           name: string
           price?: number
@@ -249,6 +251,7 @@ export type Database = {
           drink_type?: string | null
           flavor_type?: string | null
           id?: string
+          image_url?: string | null
           is_available?: boolean | null
           name?: string
           price?: number
