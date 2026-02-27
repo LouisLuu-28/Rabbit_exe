@@ -9,6 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Switch } from "@/components/ui/switch";
 import { toast } from "@/hooks/use-toast";
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from "@/components/ui/alert-dialog";
+import { ImagePlus } from "lucide-react";
 
 interface EditMenuItemDialogProps {
   open: boolean;
@@ -31,8 +32,11 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
     dish_type: "",
     flavor_type: "",
     drink_type: "",
+    image_url: "",
   });
   const [ingredients, setIngredients] = useState<any[]>([]);
+  const [imageFile, setImageFile] = useState<File | null>(null);
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   useEffect(() => {
     if (open && menuItemId) {
@@ -58,11 +62,14 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
         price: data.price.toString(),
         category: data.category,
         is_available: data.is_available,
-        dish_style: data.dish_style || "",
-        dish_type: data.dish_type || "",
-        flavor_type: data.flavor_type || "",
-        drink_type: data.drink_type || "",
+        dish_style: (data as any).dish_style || "",
+        dish_type: (data as any).dish_type || "",
+        flavor_type: (data as any).flavor_type || "",
+        drink_type: (data as any).drink_type || "",
+        image_url: (data as any).image_url || "",
       });
+      setImagePreview((data as any).image_url || null);
+      setImageFile(null);
     }
   };
 
@@ -87,11 +94,38 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
     }
   };
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      if (file.size > 5 * 1024 * 1024) {
+        toast({ title: "Lỗi", description: "Hình ảnh không được vượt quá 5MB", variant: "destructive" });
+        return;
+      }
+      setImageFile(file);
+      setImagePreview(URL.createObjectURL(file));
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!menuItemId) return;
 
     setLoading(true);
+
+    // Upload image if new file selected
+    let imageUrl = menuItem.image_url;
+    if (imageFile) {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (user) {
+        const ext = imageFile.name.split('.').pop();
+        const filePath = `${user.id}/${menuItemId}.${ext}`;
+        const { error: uploadError } = await supabase.storage.from('menu-images').upload(filePath, imageFile, { upsert: true });
+        if (!uploadError) {
+          const { data: { publicUrl } } = supabase.storage.from('menu-images').getPublicUrl(filePath);
+          imageUrl = publicUrl;
+        }
+      }
+    }
 
     const { error } = await supabase
       .from("menu_items")
@@ -105,7 +139,8 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
         dish_type: menuItem.dish_type || null,
         flavor_type: menuItem.flavor_type || null,
         drink_type: menuItem.drink_type || null,
-      })
+        image_url: imageUrl || null,
+      } as any)
       .eq("id", menuItemId);
 
     setLoading(false);
@@ -187,6 +222,30 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
                 maxLength={200}
                 required
               />
+            </div>
+
+            <div>
+              <Label>Hình Ảnh Món Ăn</Label>
+              <div className="flex items-center gap-4 mt-2">
+                {imagePreview ? (
+                  <div className="relative w-24 h-24 rounded-lg overflow-hidden border">
+                    <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                    <button
+                      type="button"
+                      onClick={() => { setImageFile(null); setImagePreview(null); setMenuItem({ ...menuItem, image_url: "" }); }}
+                      className="absolute top-1 right-1 bg-destructive text-destructive-foreground rounded-full w-5 h-5 flex items-center justify-center text-xs"
+                    >
+                      ×
+                    </button>
+                  </div>
+                ) : (
+                  <label className="w-24 h-24 border-2 border-dashed rounded-lg flex flex-col items-center justify-center cursor-pointer hover:bg-muted/50 transition-colors">
+                    <ImagePlus className="h-6 w-6 text-muted-foreground" />
+                    <span className="text-xs text-muted-foreground mt-1">Thêm ảnh</span>
+                    <input type="file" accept="image/*" className="hidden" onChange={handleImageChange} />
+                  </label>
+                )}
+              </div>
             </div>
 
             <div>

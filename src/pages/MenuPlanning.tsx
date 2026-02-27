@@ -20,13 +20,11 @@ interface MenuItem {
   price: number;
   category: string;
   is_available: boolean;
-  // Món chính
-  dish_style?: string; // món nước / món khô
-  dish_type?: string; // món chay / món mặn
-  // Món phụ & Tráng miệng
-  flavor_type?: string; // mặn / ngọt
-  // Đồ uống
-  drink_type?: string; // nước / nước_ngọt / nước_ép / cà_phê / trà / đồ uống có cồn / khác
+  image_url?: string;
+  dish_style?: string;
+  dish_type?: string;
+  flavor_type?: string;
+  drink_type?: string;
 }
 
 const MenuPlanning = () => {
@@ -147,9 +145,10 @@ const MenuPlanning = () => {
       ) : (
         <Card data-tutorial="menu-list">
           <CardContent className="pt-6">
-            <Table>
+             <Table>
               <TableHeader>
                 <TableRow>
+                  <TableHead className="w-16">Ảnh</TableHead>
                   <TableHead>Mã Món</TableHead>
                   <TableHead>Tên Món</TableHead>
                   <TableHead>Danh Mục</TableHead>
@@ -162,6 +161,15 @@ const MenuPlanning = () => {
               <TableBody>
                 {filteredMenuItems.map((item) => (
                   <TableRow key={item.id}>
+                    <TableCell>
+                      {item.image_url ? (
+                        <img src={item.image_url} alt={item.name} className="w-12 h-12 rounded-lg object-cover" />
+                      ) : (
+                        <div className="w-12 h-12 rounded-lg bg-muted flex items-center justify-center text-muted-foreground text-lg">
+                          🍽️
+                        </div>
+                      )}
+                    </TableCell>
                     <TableCell className="font-mono text-sm">{item.code || "-"}</TableCell>
                     <TableCell className="font-medium">{item.name}</TableCell>
                     <TableCell>
