@@ -184,6 +184,7 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
                 id="name"
                 value={menuItem.name}
                 onChange={(e) => setMenuItem({ ...menuItem, name: e.target.value })}
+                maxLength={200}
                 required
               />
             </div>
@@ -195,6 +196,7 @@ export function EditMenuItemDialog({ open, onOpenChange, menuItemId, onSuccess }
                 value={menuItem.description}
                 onChange={(e) => setMenuItem({ ...menuItem, description: e.target.value })}
                 rows={3}
+                maxLength={1000}
               />
             </div>
 

@@ -850,6 +850,7 @@ const Financial = () => {
                   value={recordForm.category}
                   onChange={(event) => setRecordForm((prev) => ({ ...prev, category: event.target.value }))}
                   placeholder="VD: Nguyên liệu"
+                  maxLength={100}
                 />
                 <div className="flex flex-wrap gap-2">
                   {categorySuggestions[recordForm.type].map((suggestion) => (
@@ -872,6 +873,7 @@ const Financial = () => {
                 placeholder="Thông tin chi tiết..."
                 value={recordForm.description}
                 onChange={(event) => setRecordForm((prev) => ({ ...prev, description: event.target.value }))}
+                maxLength={1000}
               />
             </div>
           </div>

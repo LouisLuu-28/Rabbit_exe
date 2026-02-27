@@ -109,6 +109,26 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+
+    // Validate inputs
+    const trimmedName = formData.customer_name.trim();
+    if (!trimmedName || trimmedName.length > 100) {
+      toast({ title: "Lỗi", description: "Tên khách hàng không hợp lệ (tối đa 100 ký tự)", variant: "destructive" });
+      return;
+    }
+    if (formData.customer_phone && !/^[0-9+\-\s()]{0,15}$/.test(formData.customer_phone)) {
+      toast({ title: "Lỗi", description: "Số điện thoại không hợp lệ", variant: "destructive" });
+      return;
+    }
+    if (formData.delivery_address.length > 500) {
+      toast({ title: "Lỗi", description: "Địa chỉ quá dài (tối đa 500 ký tự)", variant: "destructive" });
+      return;
+    }
+    if (formData.notes.length > 2000) {
+      toast({ title: "Lỗi", description: "Ghi chú quá dài (tối đa 2000 ký tự)", variant: "destructive" });
+      return;
+    }
+
     if (orderItems.length === 0) {
       toast({
         title: "Lỗi",
@@ -207,6 +227,7 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
                 id="customer_name"
                 value={formData.customer_name}
                 onChange={(e) => setFormData({ ...formData, customer_name: e.target.value })}
+                maxLength={100}
                 required
               />
             </div>
@@ -217,6 +238,7 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
                 id="customer_phone"
                 value={formData.customer_phone}
                 onChange={(e) => setFormData({ ...formData, customer_phone: e.target.value })}
+                maxLength={15}
               />
             </div>
 
@@ -247,6 +269,7 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
                 id="delivery_address"
                 value={formData.delivery_address}
                 onChange={(e) => setFormData({ ...formData, delivery_address: e.target.value })}
+                maxLength={500}
               />
             </div>
 
@@ -273,6 +296,7 @@ export function AddOrderDialog({ open, onOpenChange, onSuccess }: AddOrderDialog
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
                 rows={2}
+                maxLength={2000}
               />
             </div>
           </div>
