@@ -1,6 +1,18 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
+import type { VercelRequest, VercelResponse } from '@vercel/node';
 
-export default async function handler(req: any, res: any) {
+export default async function handler(req: VercelRequest, res: VercelResponse) {
+    // Set CORS headers
+    res.setHeader('Access-Control-Allow-Credentials', 'true');
+    res.setHeader('Access-Control-Allow-Origin', '*');
+    res.setHeader('Access-Control-Allow-Methods', 'GET,OPTIONS,PATCH,DELETE,POST,PUT');
+    res.setHeader('Access-Control-Allow-Headers', 'X-CSRF-Token, X-Requested-With, Accept, Accept-Version, Content-Length, Content-MD5, Content-Type, Date, X-Api-Version');
+
+    // Handle OPTIONS request
+    if (req.method === 'OPTIONS') {
+        return res.status(200).end();
+    }
+
     // Chỉ chấp nhận phương thức POST
     if (req.method !== 'POST') {
         return res.status(405).json({ error: 'Method Not Allowed' });
@@ -11,7 +23,8 @@ export default async function handler(req: any, res: any) {
         const apiKey = process.env.GEMINI_API_KEY;
 
         if (!apiKey) {
-            return res.status(500).json({ error: 'Chưa thiết lập GEMINI_API_KEY trên Vercel hoặc file .env' });
+            console.error('GEMINI_API_KEY không được thiết lập');
+            return res.status(500).json({ error: 'Chưa thiết lập GEMINI_API_KEY trên Vercel' });
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
@@ -28,7 +41,6 @@ Nhiệm vụ của bạn:
 Hãy trả lời ngắn gọn, súc tích và tập trung vào giải pháp.`;
 
         // Chuẩn bị lịch sử hội thoại cho SDK
-        // SDK yêu cầu role là 'user' hoặc 'model'
         const formattedHistory = [
             { role: "user", parts: [{ text: systemPrompt }] },
             { role: "model", parts: [{ text: "Tôi đã hiểu. Tôi là trợ lý chuyên nghiệp của Rabbit EMS, sẵn sàng hỗ trợ bạn quản lý vận hành nhà hàng hiệu quả. Tôi có thể giúp gì cho bạn hôm nay?" }] },
