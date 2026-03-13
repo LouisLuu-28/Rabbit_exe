@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase } from './supabase';
 
 /**
  * Lấy toàn bộ thực đơn của người dùng

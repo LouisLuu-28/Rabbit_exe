@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase } from './supabase';
 
 /**
  * Tổng hợp doanh thu và chi phí trong một khoảng thời gian

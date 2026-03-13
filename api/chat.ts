@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import * as inventoryTools from "./_lib/inventory-tools.js";
-import * as menuTools from "./_lib/menu-tools.js";
-import * as orderTools from "./_lib/order-tools.js";
-import * as financialTools from "./_lib/financial-tools.js";
+import * as inventoryTools from "./_lib/inventory-tools";
+import * as menuTools from "./_lib/menu-tools";
+import * as orderTools from "./_lib/order-tools";
+import * as financialTools from "./_lib/financial-tools";
 
 import * as fs from 'fs';
 import * as path from 'path';
@@ -124,7 +124,7 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
         ];
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-latest",
+            model: "gemini-1.5-flash",
             systemInstruction: systemPrompt,
             tools: tools as any,
         });
@@ -145,7 +145,7 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
 
             for (const fc of functionCalls) {
                 const { name, args } = fc.functionCall!;
-                console.log(`[AI-ACTION] Gọi hàm: ${name} với dữ liệu:`, args);
+                console.log(`[AI-DEBUG] AI gọi hàm: ${name}`, args);
 
                 let data;
                 if (!userId) {
@@ -171,9 +171,12 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
                         else if (name === "get_recent_financial_records") data = await financialTools.get_recent_financial_records(userId, a.type, a.limit);
                         else data = { error: `Hàm ${name} không tồn tại.` };
                     } catch (e: any) {
+                        console.error(`[AI-ERROR] Lỗi khi thực thi hàm ${name}:`, e);
                         data = { error: `Lỗi khi thực thi hàm: ${e.message}` };
                     }
                 }
+
+                console.log(`[AI-DEBUG] Kết quả từ ${name}:`, Array.isArray(data) ? `Tìm thấy ${data.length} bản ghi` : data);
 
                 functionResponses.push({
                     functionResponse: {

@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase } from './supabase';
 
 /**
  * Lấy danh sách đơn hàng gần đây của người dùng

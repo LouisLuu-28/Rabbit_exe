@@ -1,4 +1,4 @@
-import { supabase } from './supabase.js';
+import { supabase } from './supabase';
 
 /**
  * Lấy danh sách toàn bộ nguyên liệu trong kho của người dùng
