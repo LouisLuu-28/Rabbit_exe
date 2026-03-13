@@ -40,7 +40,7 @@ Nhiệm vụ của bạn:
 Hãy trả lời ngắn gọn, súc tích và tập trung vào giải pháp.`;
 
         const model = genAI.getGenerativeModel({ 
-            model: "gemini-1.5-pro",
+            model: "gemini-flash-latest",
             systemInstruction: systemPrompt,
         });
 
