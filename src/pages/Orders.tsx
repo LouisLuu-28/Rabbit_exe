@@ -10,6 +10,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Plus, Eye, Search } from "lucide-react";
 import { AddOrderDialog } from "@/components/orders/AddOrderDialog";
 import { OrderDetailDialog } from "@/components/orders/OrderDetailDialog";
+import { OrdersSkeleton } from "@/components/skeletons/OrdersSkeleton";
 
 interface Order {
   id: string;
@@ -88,7 +89,7 @@ const Orders = () => {
   });
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
+    return <OrdersSkeleton />;
   }
 
   return (

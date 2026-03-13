@@ -13,6 +13,7 @@ import { EditIngredientDialog } from "@/components/inventory/EditIngredientDialo
 import { ImportIngredientsDialog } from "@/components/inventory/ImportIngredientsDialog";
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { InventorySkeleton } from "@/components/skeletons/InventorySkeleton";
 
 interface Ingredient {
   id: string;
@@ -276,7 +277,7 @@ const Inventory = () => {
   );
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
+    return <InventorySkeleton />;
   }
 
   return (

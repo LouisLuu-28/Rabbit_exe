@@ -11,6 +11,7 @@ import { Plus, Search, Upload, Eye } from "lucide-react";
 import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
 import { ImportMenuItemsDialog } from "@/components/menu/ImportMenuItemsDialog";
+import { MenuPlanningSkeleton } from "@/components/skeletons/MenuPlanningSkeleton";
 
 interface MenuItem {
   id: string;
@@ -86,7 +87,7 @@ const MenuPlanning = () => {
   });
 
   if (loading) {
-    return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
+    return <MenuPlanningSkeleton />;
   }
 
   return (

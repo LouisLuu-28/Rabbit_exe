@@ -48,6 +48,7 @@ import {
   ArrowUpRight,
   CalendarRange,
   DollarSign,
+import { FinancialSkeleton } from "@/components/skeletons/FinancialSkeleton";
   Filter,
   Flame,
   Loader2,
@@ -453,7 +454,7 @@ const Financial = () => {
   };
 
   if (initializing) {
-    return <div className="flex items-center justify-center min-h-screen">Đang tải...</div>;
+    return <FinancialSkeleton />;
   }
 
   const rangeLabel = dateRange.from && dateRange.to
