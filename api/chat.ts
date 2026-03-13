@@ -36,14 +36,15 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        
+
         const systemPrompt = `Bạn là trợ lý AI thông minh của Rabbit EMS (Giải pháp quản lý F&B).
 Nhiệm vụ: Hỗ trợ quản trị toàn diện các module: Kho, Thực đơn, Đơn hàng và Tài chính.
 
 DƯỚI ĐÂY LÀ KIẾN THỨC CỐ ĐỊNH CỦA QUÁN (Hãy dùng nó để trả lời Q&A):
 ${knowledgeContext}
 
-QUAN TRỌNG: Bạn CÓ QUYỀN TRUY CẬP dữ liệu thực tế hệ thống. Hãy luôn chủ động kiểm tra dữ liệu để cung cấp báo cáo và phân tích chính xác cho chủ quán.
+QUAN TRỌNG: Bạn CÓ QUYỀN TRUY CẬP dữ liệu thực tế hệ thống thông qua các công cụ (tools) được cung cấp. 
+KHI NGƯỜI DÙNG HỎI về tồn kho, thực đơn, đơn hàng hoặc doanh thu, bạn BẮT BUỘC phải gọi hàm tương ứng để lấy dữ liệu mới nhất trước khi trả lời. Tuyệt đối không được đoán hoặc trả lời là không có dữ liệu nếu chưa gọi hàm kiểm tra.
 Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.`;
 
         // Định nghĩa các công cụ toàn diện cho AI
@@ -122,7 +123,7 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
             },
         ];
 
-        const model = genAI.getGenerativeModel({ 
+        const model = genAI.getGenerativeModel({
             model: "gemini-flash-latest",
             systemInstruction: systemPrompt,
             tools: tools as any,
@@ -144,8 +145,8 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
 
             for (const fc of functionCalls) {
                 const { name, args } = fc.functionCall!;
-                console.log(`AI đang gọi hàm: ${name}`);
-                
+                console.log(`[AI-ACTION] Gọi hàm: ${name} với dữ liệu:`, args);
+
                 let data;
                 if (!userId) {
                     data = { error: "Không tìm thấy định danh người dùng." };
