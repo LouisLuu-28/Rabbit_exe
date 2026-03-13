@@ -124,7 +124,7 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
         ];
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-2.5-flash",
+            model: "gemini-2.0-flash",
             systemInstruction: systemPrompt,
             tools: tools as any,
         });
