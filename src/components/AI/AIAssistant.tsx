@@ -35,18 +35,14 @@ export const AIAssistant = () => {
         setIsLoading(true);
 
         try {
-            // Gọi tới Vercel Serverless Function
+            // Gọi tới Vercel Serverless Function - không gửi history để tiết kiệm quota
             const response = await fetch("/api/chat", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
                 },
                 body: JSON.stringify({
-                    message: content,
-                    history: messages.slice(1).map(msg => ({
-                        role: msg.role === 'user' ? 'user' : 'model',
-                        content: msg.content
-                    }))
+                    message: content
                 }),
             });
 
