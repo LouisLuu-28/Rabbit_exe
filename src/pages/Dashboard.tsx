@@ -8,6 +8,7 @@ import { CustomerReturnFrequency } from "@/components/CustomerReturnFrequency";
 import { PreferredSuppliers } from "@/components/PreferredSuppliers";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts";
+import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
 
 interface DashboardStats {
   totalOrders: number;
@@ -244,11 +245,7 @@ const Dashboard = () => {
   };
 
   if (loading) {
-    return (
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="text-lg">Đang tải...</div>
-      </div>
-    );
+    return <DashboardSkeleton />;
   }
 
   const getStatusBadge = (status: string) => {
