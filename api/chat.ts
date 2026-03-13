@@ -192,8 +192,3 @@ Thái độ: Chuyên nghiệp, thân thiện, trả lời bằng tiếng Việt.
         return res.status(500).json({ error: 'Lỗi xử lý yêu cầu: ' + error.message });
     }
 }
-    } catch (error: any) {
-        console.error('Lỗi API chat:', error);
-        return res.status(500).json({ error: 'Lỗi xử lý yêu cầu: ' + error.message });
-    }
-}
