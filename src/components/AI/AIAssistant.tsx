@@ -7,7 +7,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { ChatMessage } from "./ChatMessage";
 import { ChatInput } from "./ChatInput";
 import { toast } from "sonner";
-import { supabase } from "@/integrations/supabase/client";
 
 interface Message {
     role: "user" | "assistant";
@@ -36,8 +35,6 @@ export const AIAssistant = () => {
         setIsLoading(true);
 
         try {
-            const { data: { user } } = await supabase.auth.getUser();
-            
             // Gọi tới Vercel Serverless Function
             const response = await fetch("/api/chat", {
                 method: "POST",
@@ -46,7 +43,6 @@ export const AIAssistant = () => {
                 },
                 body: JSON.stringify({
                     message: content,
-                    userId: user?.id,
                     history: messages.slice(1).map(msg => ({
                         role: msg.role === 'user' ? 'user' : 'model',
                         content: msg.content
