@@ -1,9 +1,9 @@
 import { GoogleGenerativeAI } from "@google/generative-ai";
 import type { VercelRequest, VercelResponse } from '@vercel/node';
-import * as inventoryTools from "./_lib/inventory-tools";
-import * as menuTools from "./_lib/menu-tools";
-import * as orderTools from "./_lib/order-tools";
-import * as financialTools from "./_lib/financial-tools";
+import * as inventoryTools from "./_lib/inventory-tools.js";
+import * as menuTools from "./_lib/menu-tools.js";
+import * as orderTools from "./_lib/order-tools.js";
+import * as financialTools from "./_lib/financial-tools.js";
 
 import * as fs from 'fs';
 import * as path from 'path';
