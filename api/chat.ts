@@ -28,7 +28,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash" });
+        const model = genAI.getGenerativeModel({ model: "gemini-1.5-flash-latest" });
 
         // Cấu hình hướng dẫn hệ thống (System Prompt)
         const systemPrompt = `Bạn là một trợ lý AI thông minh tích hợp trong hệ thống Rabbit EMS (Enterprise Management System), một giải pháp quản lý F&B (Thực phẩm & Đồ uống).
