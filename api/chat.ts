@@ -28,9 +28,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         }
 
         const genAI = new GoogleGenerativeAI(apiKey);
-        const model = genAI.getGenerativeModel({ model: "gemini-pro" });
-
-        // Cấu hình hướng dẫn hệ thống (System Prompt)
+        
+        // Cấu hình hướng dẫn hệ thống (System Prompt) - Cách hiện đại dùng systemInstruction
         const systemPrompt = `Bạn là một trợ lý AI thông minh tích hợp trong hệ thống Rabbit EMS (Enterprise Management System), một giải pháp quản lý F&B (Thực phẩm & Đồ uống).
 Nhiệm vụ của bạn:
 1. Hỗ trợ người dùng quản lý kho hàng (ingredients), đơn hàng (orders), thực đơn (menu) và tài chính.
@@ -40,15 +39,16 @@ Nhiệm vụ của bạn:
 
 Hãy trả lời ngắn gọn, súc tích và tập trung vào giải pháp.`;
 
-        // Chuẩn bị lịch sử hội thoại cho SDK
-        const formattedHistory = [
-            { role: "user", parts: [{ text: systemPrompt }] },
-            { role: "model", parts: [{ text: "Tôi đã hiểu. Tôi là trợ lý chuyên nghiệp của Rabbit EMS, sẵn sàng hỗ trợ bạn quản lý vận hành nhà hàng hiệu quả. Tôi có thể giúp gì cho bạn hôm nay?" }] },
-            ...(history || []).map((msg: any) => ({
-                role: msg.role === 'user' ? 'user' : 'model',
-                parts: [{ text: msg.content }]
-            }))
-        ];
+        const model = genAI.getGenerativeModel({ 
+            model: "gemini-1.5-flash",
+            systemInstruction: systemPrompt,
+        });
+
+        // Chuẩn bị lịch sử hội thoại cho SDK (không cần systemPrompt trong history nữa)
+        const formattedHistory = (history || []).map((msg: any) => ({
+            role: msg.role === 'user' ? 'user' : 'model',
+            parts: [{ text: msg.content }]
+        }));
 
         const chat = model.startChat({
             history: formattedHistory,
