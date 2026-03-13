@@ -48,7 +48,6 @@ import {
   ArrowUpRight,
   CalendarRange,
   DollarSign,
-import { FinancialSkeleton } from "@/components/skeletons/FinancialSkeleton";
   Filter,
   Flame,
   Loader2,
@@ -58,6 +57,7 @@ import { FinancialSkeleton } from "@/components/skeletons/FinancialSkeleton";
   TrendingDown,
   TrendingUp,
 } from "lucide-react";
+import { FinancialSkeleton } from "@/components/skeletons/FinancialSkeleton";
 
 type FinancialPeriod = "week" | "month" | "quarter" | "year" | "custom";
 type FinancialType = "revenue" | "expense";
