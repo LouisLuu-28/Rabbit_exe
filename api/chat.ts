@@ -24,7 +24,7 @@ Hỗ trợ tư vấn về quản lý nhà hàng, kho hàng, thực đơn, đơn 
 Trả lời ngắn gọn, thân thiện bằng tiếng Việt.`;
 
         const model = genAI.getGenerativeModel({
-            model: "gemini-flash-lite-latest",
+            model: "gemini-3-flash-preview",
             systemInstruction: systemPrompt,
         });
 
