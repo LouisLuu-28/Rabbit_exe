@@ -58,6 +58,8 @@ import {
   TrendingUp,
 } from "lucide-react";
 import { FinancialSkeleton } from "@/components/skeletons/FinancialSkeleton";
+import { useSubscription } from "@/hooks/use-subscription";
+import { isReadOnlyPlan } from "@/lib/subscription";
 
 type FinancialPeriod = "week" | "month" | "quarter" | "year" | "custom";
 type FinancialType = "revenue" | "expense";
@@ -201,6 +203,8 @@ const createInitialRecordForm = (): RecordFormState => ({
 const Financial = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { plan } = useSubscription();
+  const isReadOnly = isReadOnlyPlan(plan);
 
   const [initializing, setInitializing] = useState(true);
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -236,6 +240,36 @@ const Financial = () => {
 
   const fetchFinancialData = useCallback(async () => {
     if (!dateRange.from || !dateRange.to) return;
+
+    if (isReadOnly) {
+      setIsFetching(false);
+      setRecords([
+        {
+          id: "demo-fin-1",
+          record_date: new Date().toISOString().slice(0, 10),
+          dateKey: new Date().toISOString().slice(0, 10),
+          type: "revenue",
+          amount: 520000,
+          category: "Đơn hàng",
+          description: "Doanh thu mẫu",
+          source: "order",
+          status: "delivered",
+        },
+        {
+          id: "demo-fin-2",
+          record_date: new Date().toISOString().slice(0, 10),
+          dateKey: new Date().toISOString().slice(0, 10),
+          type: "expense",
+          amount: 280000,
+          category: "Nguyên liệu",
+          description: "Chi phí mẫu",
+          source: "manual",
+        },
+      ]);
+      setOrderMetrics({ count: 8, averageValue: 185000 });
+      return;
+    }
+
     setIsFetching(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) {
@@ -315,7 +349,7 @@ const Financial = () => {
     });
 
     setIsFetching(false);
-  }, [dateRange.from, dateRange.to, toast]);
+  }, [dateRange.from, dateRange.to, isReadOnly, toast]);
 
   useEffect(() => {
     if (!isAuthenticated || !dateRange.from || !dateRange.to) return;
@@ -468,6 +502,7 @@ const Financial = () => {
           <h1 className="text-3xl font-bold mb-2">Báo Cáo Tài Chính</h1>
           <p className="text-muted-foreground">Theo dõi dòng tiền, lợi nhuận và chi phí theo thời gian</p>
           <p className="text-sm text-muted-foreground mt-1">Khoảng thời gian: {rangeLabel}</p>
+          {isReadOnly && <p className="text-sm text-muted-foreground mt-1">Chế độ xem mẫu: bạn không thể tạo/sửa/xóa dữ liệu ở gói Unpaid.</p>}
         </div>
         <div className="flex flex-wrap items-center gap-2">
           {periodOptions.map((option) => (
@@ -495,7 +530,7 @@ const Financial = () => {
             {isFetching ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
             Làm mới
           </Button>
-          <Button size="sm" className="gap-2" onClick={() => handleDialogToggle(true)}>
+          <Button size="sm" className="gap-2" onClick={() => handleDialogToggle(true)} disabled={isReadOnly}>
             <Plus className="h-4 w-4" />
             Ghi nhận
           </Button>
@@ -682,7 +717,7 @@ const Financial = () => {
               <CardTitle>Ghi nhận tài chính</CardTitle>
               <CardDescription>Danh sách giao dịch thủ công và doanh thu từ đơn hàng</CardDescription>
             </div>
-            <Button size="sm" variant="outline" className="gap-2" onClick={() => handleDialogToggle(true)}>
+            <Button size="sm" variant="outline" className="gap-2" onClick={() => handleDialogToggle(true)} disabled={isReadOnly}>
               <Plus className="h-4 w-4" />
               Ghi nhận
             </Button>
@@ -800,7 +835,7 @@ const Financial = () => {
         </CardContent>
       </Card>
 
-      <Dialog open={recordDialogOpen} onOpenChange={handleDialogToggle}>
+      <Dialog open={recordDialogOpen && !isReadOnly} onOpenChange={handleDialogToggle}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle>Ghi nhận giao dịch</DialogTitle>

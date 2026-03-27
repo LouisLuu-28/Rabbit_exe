@@ -9,6 +9,8 @@ import { PreferredSuppliers } from "@/components/PreferredSuppliers";
 import { ChartContainer, ChartTooltip, ChartTooltipContent } from "@/components/ui/chart";
 import { Area, AreaChart, Bar, BarChart, CartesianGrid, XAxis, YAxis, Legend } from "recharts";
 import { DashboardSkeleton } from "@/components/skeletons/DashboardSkeleton";
+import { useSubscription } from "@/hooks/use-subscription";
+import { isReadOnlyPlan } from "@/lib/subscription";
 
 interface DashboardStats {
   totalOrders: number;
@@ -48,6 +50,8 @@ interface IngredientChartData {
 
 const Dashboard = () => {
   const navigate = useNavigate();
+  const { plan } = useSubscription();
+  const isReadOnly = isReadOnlyPlan(plan);
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState<DashboardStats>({
     totalOrders: 0,
@@ -83,7 +87,50 @@ const Dashboard = () => {
     return () => subscription.unsubscribe();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!loading) {
+      fetchDashboardData();
+    }
+  }, [isReadOnly, loading]);
+
   const fetchDashboardData = async () => {
+    if (isReadOnly) {
+      setStats({
+        totalOrders: 12,
+        ingredientsCount: 18,
+        ingredientsToRestock: 4,
+        revenue: 8450000,
+        profit: 3120000,
+      });
+      setRecentOrders([
+        { id: "demo-1", customer_name: "Nguyễn Văn A", order_date: new Date().toISOString().slice(0, 10), total_amount: 320000, status: "delivered" },
+        { id: "demo-2", customer_name: "Trần Thị B", order_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10), total_amount: 210000, status: "preparing" },
+      ]);
+      setLowStockIngredients([
+        { id: "demo-i1", name: "Thịt gà", current_stock: 2, min_stock: 5, unit: "kg" },
+        { id: "demo-i2", name: "Rau xà lách", current_stock: 1, min_stock: 3, unit: "kg" },
+      ]);
+      setChartData([
+        { date: "20/03", revenue: 950000, orders: 4 },
+        { date: "21/03", revenue: 1320000, orders: 6 },
+        { date: "22/03", revenue: 1140000, orders: 5 },
+        { date: "23/03", revenue: 870000, orders: 4 },
+        { date: "24/03", revenue: 1460000, orders: 7 },
+        { date: "25/03", revenue: 1220000, orders: 6 },
+        { date: "26/03", revenue: 1490000, orders: 8 },
+      ]);
+      setIngredientChartData([
+        { date: "20/03", imported: 3, used: 2 },
+        { date: "21/03", imported: 4, used: 3 },
+        { date: "22/03", imported: 2, used: 4 },
+        { date: "23/03", imported: 5, used: 3 },
+        { date: "24/03", imported: 3, used: 5 },
+        { date: "25/03", imported: 4, used: 4 },
+        { date: "26/03", imported: 3, used: 6 },
+      ]);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -302,6 +349,7 @@ const Dashboard = () => {
       <div>
         <h1 className="text-3xl font-bold mb-2">Dashboard</h1>
         <p className="text-muted-foreground">Chào mừng bạn đến với Rabbit EMS System</p>
+        {isReadOnly && <p className="text-sm text-muted-foreground mt-1">Bạn đang ở chế độ xem mẫu (Unpaid): chỉ xem, không chỉnh sửa dữ liệu.</p>}
       </div>
 
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4" data-tutorial="dashboard-stats">

@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -9,6 +9,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { z } from "zod";
+import { hasFeature, normalizePlan } from "@/lib/subscription";
 
 const emailSchema = z.string().email("Email không hợp lệ").max(255);
 const passwordSchema = z.string().min(6, "Mật khẩu phải có ít nhất 6 ký tự").max(100);
@@ -21,21 +22,30 @@ const Auth = () => {
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
 
+  const navigateAfterAuth = useCallback((session: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>) => {
+    const plan = normalizePlan(session.user.user_metadata?.plan as string | undefined);
+    if (hasFeature(plan, "dashboard")) {
+      navigate("/dashboard");
+      return;
+    }
+    navigate("/account");
+  }, [navigate]);
+
   useEffect(() => {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((event, session) => {
       if (session) {
-        navigate("/dashboard");
+        navigateAfterAuth(session);
       }
     });
 
     supabase.auth.getSession().then(({ data: { session } }) => {
       if (session) {
-        navigate("/dashboard");
+        navigateAfterAuth(session);
       }
     });
 
     return () => subscription.unsubscribe();
-  }, [navigate]);
+  }, [navigateAfterAuth]);
 
   const validateInputs = () => {
     try {
@@ -92,9 +102,10 @@ const Auth = () => {
       email,
       password,
       options: {
-        emailRedirectTo: `${window.location.origin}/dashboard`,
+        emailRedirectTo: `${window.location.origin}/auth`,
         data: {
           full_name: fullName,
+          plan: "unpaid",
         },
       },
     });

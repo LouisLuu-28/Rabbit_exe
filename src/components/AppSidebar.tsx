@@ -17,18 +17,21 @@ import {
   SidebarHeader,
   useSidebar,
 } from "@/components/ui/sidebar";
+import { useSubscription } from "@/hooks/use-subscription";
+import { hasFeature } from "@/lib/subscription";
 
 const menuItems = [
-  { title: "Dashboard", url: "/dashboard", icon: Home },
-  { title: "Đơn Hàng", url: "/orders", icon: ShoppingCart },
-  { title: "Thực Đơn Tuần", url: "/menu-planning", icon: CalendarDays },
-  { title: "Kho Nguyên Liệu", url: "/inventory", icon: Package },
-  { title: "Tài Chính", url: "/financial", icon: DollarSign },
+  { title: "Dashboard", url: "/dashboard", icon: Home, feature: "dashboard" as const },
+  { title: "Đơn Hàng", url: "/orders", icon: ShoppingCart, feature: "orders" as const },
+  { title: "Thực Đơn Tuần", url: "/menu-planning", icon: CalendarDays, feature: "menu" as const },
+  { title: "Kho Nguyên Liệu", url: "/inventory", icon: Package, feature: "inventory" as const },
+  { title: "Tài Chính", url: "/financial", icon: DollarSign, feature: "financial" as const },
   { title: "Tài Khoản", url: "/account", icon: User },
 ];
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
+  const { plan } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
   const collapsed = state === "collapsed";
@@ -91,6 +94,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
+                if (item.feature && !hasFeature(plan, item.feature)) {
+                  return null;
+                }
+
                 const getTutorialAttr = () => {
                   if (item.url === "/dashboard") return "dashboard-nav";
                   if (item.url === "/orders") return "orders-nav";

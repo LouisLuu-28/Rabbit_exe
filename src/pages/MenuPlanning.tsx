@@ -12,6 +12,8 @@ import { AddMenuItemDialog } from "@/components/menu/AddMenuItemDialog";
 import { EditMenuItemDialog } from "@/components/menu/EditMenuItemDialog";
 import { ImportMenuItemsDialog } from "@/components/menu/ImportMenuItemsDialog";
 import { MenuPlanningSkeleton } from "@/components/skeletons/MenuPlanningSkeleton";
+import { useSubscription } from "@/hooks/use-subscription";
+import { hasFeature, isReadOnlyPlan } from "@/lib/subscription";
 
 interface MenuItem {
   id: string;
@@ -38,6 +40,9 @@ const MenuPlanning = () => {
   const [selectedMenuItemId, setSelectedMenuItemId] = useState<string | null>(null);
   const [searchTerm, setSearchTerm] = useState("");
   const [filterCategory, setFilterCategory] = useState<string>("all");
+  const { plan } = useSubscription();
+  const canUseExcel = hasFeature(plan, "excel");
+  const isReadOnly = isReadOnlyPlan(plan);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -53,7 +58,40 @@ const MenuPlanning = () => {
     checkAuth();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!loading) {
+      fetchMenuItems();
+    }
+  }, [isReadOnly, loading]);
+
   const fetchMenuItems = async () => {
+    if (isReadOnly) {
+      setMenuItems([
+        {
+          id: "demo-menu-1",
+          code: "TD-DEMO-001",
+          name: "Cơm gà mẫu",
+          description: "Món mẫu để xem tính năng",
+          price: 45000,
+          category: "main",
+          is_available: true,
+          dish_style: "dry",
+          dish_type: "meat",
+        },
+        {
+          id: "demo-menu-2",
+          code: "TD-DEMO-002",
+          name: "Trà đào mẫu",
+          description: "Đồ uống mẫu",
+          price: 30000,
+          category: "drink",
+          is_available: true,
+          drink_type: "tea",
+        },
+      ]);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -96,13 +134,20 @@ const MenuPlanning = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Danh Sách Món Ăn</h1>
           <p className="text-muted-foreground">Quản lý tất cả món ăn trong thực đơn</p>
+          {isReadOnly && <p className="text-sm text-muted-foreground mt-1">Chế độ xem mẫu: bạn không thể tạo/sửa/xóa dữ liệu ở gói Unpaid.</p>}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setImportDialogOpen(true)}
+            disabled={!canUseExcel}
+            title={!canUseExcel ? "Tính năng này yêu cầu gói Premium" : undefined}
+          >
             <Upload className="h-4 w-4" />
             Nhập Excel
           </Button>
-          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-menu-item">
+          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-menu-item" disabled={isReadOnly}>
             <Plus className="h-4 w-4" />
             Thêm Món
           </Button>
@@ -223,6 +268,7 @@ const MenuPlanning = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        disabled={isReadOnly}
                         onClick={() => {
                           setSelectedMenuItemId(item.id);
                           setEditDialogOpen(true);
@@ -239,24 +285,30 @@ const MenuPlanning = () => {
         </Card>
       )}
 
-      <AddMenuItemDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={fetchMenuItems}
-      />
+      {!isReadOnly && (
+        <AddMenuItemDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={fetchMenuItems}
+        />
+      )}
       
-      <ImportMenuItemsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onSuccess={fetchMenuItems}
-      />
+      {canUseExcel && (
+        <ImportMenuItemsDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onSuccess={fetchMenuItems}
+        />
+      )}
       
-      <EditMenuItemDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        menuItemId={selectedMenuItemId}
-        onSuccess={fetchMenuItems}
-      />
+      {!isReadOnly && (
+        <EditMenuItemDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          menuItemId={selectedMenuItemId}
+          onSuccess={fetchMenuItems}
+        />
+      )}
     </div>
   );
 };

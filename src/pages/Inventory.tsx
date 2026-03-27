@@ -14,6 +14,8 @@ import { ImportIngredientsDialog } from "@/components/inventory/ImportIngredient
 import { Pagination, PaginationContent, PaginationItem, PaginationLink, PaginationNext, PaginationPrevious } from "@/components/ui/pagination";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { InventorySkeleton } from "@/components/skeletons/InventorySkeleton";
+import { useSubscription } from "@/hooks/use-subscription";
+import { hasFeature, isReadOnlyPlan } from "@/lib/subscription";
 
 interface Ingredient {
   id: string;
@@ -63,6 +65,9 @@ const Inventory = () => {
   const [historySortBy, setHistorySortBy] = useState<'date' | 'quantity'>('date');
   const [historySortOrder, setHistorySortOrder] = useState<'asc' | 'desc'>('desc');
   const itemsPerPage = 5;
+  const { plan } = useSubscription();
+  const canUseExcel = hasFeature(plan, "excel");
+  const isReadOnly = isReadOnlyPlan(plan);
 
   useEffect(() => {
     const checkAuth = async () => {
@@ -78,7 +83,67 @@ const Inventory = () => {
     checkAuth();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!loading) {
+      fetchIngredients();
+    }
+  }, [isReadOnly, loading]);
+
   const fetchIngredients = async () => {
+    if (isReadOnly) {
+      const demoIngredients: Ingredient[] = [
+        {
+          id: "demo-ing-1",
+          code: "NL-DEMO-001",
+          name: "Gạo ST25",
+          category: "do_kho",
+          unit: "kg",
+          current_stock: 18,
+          min_stock: 10,
+          cost_per_unit: 22000,
+          supplier_info: "NCC Demo A",
+          created_at: new Date().toISOString(),
+          last_purchase_date: new Date().toISOString().slice(0, 10),
+          expiration_date: "",
+        },
+        {
+          id: "demo-ing-2",
+          code: "NL-DEMO-002",
+          name: "Thịt gà",
+          category: "thit",
+          unit: "kg",
+          current_stock: 3,
+          min_stock: 5,
+          cost_per_unit: 95000,
+          supplier_info: "NCC Demo B",
+          created_at: new Date().toISOString(),
+          last_purchase_date: new Date().toISOString().slice(0, 10),
+          expiration_date: "",
+        },
+      ];
+
+      setIngredients(demoIngredients);
+      setInventoryMovements([
+        {
+          date: new Date().toISOString(),
+          ingredient_name: "Gạo ST25",
+          type: "import",
+          quantity: 20,
+          unit: "kg",
+          reference: "Phiếu nhập DEMO",
+        },
+        {
+          date: new Date(Date.now() - 86400000).toISOString(),
+          ingredient_name: "Thịt gà",
+          type: "export",
+          quantity: 2,
+          unit: "kg",
+          reference: "Đơn DEMO-001",
+        },
+      ]);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -286,13 +351,20 @@ const Inventory = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Kho Nguyên Liệu</h1>
           <p className="text-muted-foreground">Quản lý và theo dõi tồn kho nguyên liệu</p>
+          {isReadOnly && <p className="text-sm text-muted-foreground mt-1">Chế độ xem mẫu: bạn không thể tạo/sửa/xóa dữ liệu ở gói Unpaid.</p>}
         </div>
         <div className="flex gap-2">
-          <Button variant="outline" className="gap-2" onClick={() => setImportDialogOpen(true)}>
+          <Button
+            variant="outline"
+            className="gap-2"
+            onClick={() => setImportDialogOpen(true)}
+            disabled={!canUseExcel}
+            title={!canUseExcel ? "Tính năng này yêu cầu gói Premium" : undefined}
+          >
             <Upload className="h-4 w-4" />
             Nhập Excel
           </Button>
-          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-ingredient">
+          <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-ingredient" disabled={isReadOnly}>
             <Plus className="h-4 w-4" />
             Thêm Nguyên Liệu
           </Button>
@@ -765,6 +837,7 @@ const Inventory = () => {
                          <Button 
                            variant="ghost" 
                            size="sm"
+                           disabled={isReadOnly}
                            onClick={() => {
                              setSelectedIngredientId(ingredient.id);
                              setEditDialogOpen(true);
@@ -782,24 +855,30 @@ const Inventory = () => {
         </CardContent>
       </Card>
 
-      <AddIngredientDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={fetchIngredients}
-      />
+      {!isReadOnly && (
+        <AddIngredientDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={fetchIngredients}
+        />
+      )}
       
-      <ImportIngredientsDialog
-        open={importDialogOpen}
-        onOpenChange={setImportDialogOpen}
-        onSuccess={fetchIngredients}
-      />
+      {canUseExcel && (
+        <ImportIngredientsDialog
+          open={importDialogOpen}
+          onOpenChange={setImportDialogOpen}
+          onSuccess={fetchIngredients}
+        />
+      )}
       
-      <EditIngredientDialog
-        open={editDialogOpen}
-        onOpenChange={setEditDialogOpen}
-        ingredientId={selectedIngredientId}
-        onSuccess={fetchIngredients}
-      />
+      {!isReadOnly && (
+        <EditIngredientDialog
+          open={editDialogOpen}
+          onOpenChange={setEditDialogOpen}
+          ingredientId={selectedIngredientId}
+          onSuccess={fetchIngredients}
+        />
+      )}
 
       <Dialog open={viewDialogOpen} onOpenChange={setViewDialogOpen}>
         <DialogContent className="max-w-2xl max-h-[80vh] overflow-y-auto">

@@ -1,10 +1,77 @@
+import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import { ChefHat, BarChart3, Package, FileText } from "lucide-react";
 import rabbitLogo from "@/assets/rabbit-logo.jpg";
+import { supabase } from "@/integrations/supabase/client";
+import { hasFeature, normalizePlan } from "@/lib/subscription";
+import { useToast } from "@/hooks/use-toast";
 
 const Index = () => {
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const [isAuthenticated, setIsAuthenticated] = useState(false);
+  const [isLoadingSession, setIsLoadingSession] = useState(true);
+  const [entryPath, setEntryPath] = useState("/account");
+
+  useEffect(() => {
+    const syncSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+
+      if (!session?.user) {
+        setIsAuthenticated(false);
+        setEntryPath("/auth");
+        setIsLoadingSession(false);
+        return;
+      }
+
+      const plan = normalizePlan(session.user.user_metadata?.plan as string | undefined);
+      const destination = hasFeature(plan, "dashboard") ? "/dashboard" : "/account";
+
+      setIsAuthenticated(true);
+      setEntryPath(destination);
+      setIsLoadingSession(false);
+    };
+
+    syncSession();
+
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!session?.user) {
+        setIsAuthenticated(false);
+        setEntryPath("/auth");
+        return;
+      }
+
+      const plan = normalizePlan(session.user.user_metadata?.plan as string | undefined);
+      setIsAuthenticated(true);
+      setEntryPath(hasFeature(plan, "dashboard") ? "/dashboard" : "/account");
+    });
+
+    return () => subscription.unsubscribe();
+  }, []);
+
+  const handleLogout = async () => {
+    const { error } = await supabase.auth.signOut();
+    if (error) {
+      toast({
+        title: "Lỗi",
+        description: "Không thể đăng xuất. Vui lòng thử lại.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsAuthenticated(false);
+    setEntryPath("/auth");
+    toast({
+      title: "Đã đăng xuất",
+      description: "Bạn đã đăng xuất thành công.",
+    });
+  };
 
   const features = [
     {
@@ -40,9 +107,20 @@ const Index = () => {
               <p className="text-xs text-muted-foreground">Quản lý doanh nghiệp</p>
             </div>
           </div>
-          <Button onClick={() => navigate("/auth")}>
-            Đăng Nhập
-          </Button>
+          <div className="flex gap-2">
+            {!isLoadingSession && isAuthenticated && (
+              <Button variant="outline" onClick={() => navigate(entryPath)}>
+                Vào hệ thống
+              </Button>
+            )}
+            {isLoadingSession ? (
+              <Button disabled>Đang tải...</Button>
+            ) : isAuthenticated ? (
+              <Button onClick={handleLogout}>Đăng Xuất</Button>
+            ) : (
+              <Button onClick={() => navigate("/auth")}>Đăng Nhập</Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -57,10 +135,10 @@ const Index = () => {
           <div className="flex gap-4 justify-center">
             <Button 
               size="lg" 
-              onClick={() => navigate("/auth")}
+              onClick={() => navigate(isAuthenticated ? entryPath : "/auth")}
               className="shadow-[var(--shadow-hover)]"
             >
-              Bắt Đầu Ngay
+              {isAuthenticated ? "Vào Hệ Thống" : "Bắt Đầu Ngay"}
             </Button>
             <Button 
               size="lg" 

@@ -11,6 +11,8 @@ import { Plus, Eye, Search } from "lucide-react";
 import { AddOrderDialog } from "@/components/orders/AddOrderDialog";
 import { OrderDetailDialog } from "@/components/orders/OrderDetailDialog";
 import { OrdersSkeleton } from "@/components/skeletons/OrdersSkeleton";
+import { useSubscription } from "@/hooks/use-subscription";
+import { isReadOnlyPlan } from "@/lib/subscription";
 
 interface Order {
   id: string;
@@ -24,6 +26,8 @@ interface Order {
 
 const Orders = () => {
   const navigate = useNavigate();
+  const { plan } = useSubscription();
+  const isReadOnly = isReadOnlyPlan(plan);
   const [loading, setLoading] = useState(true);
   const [orders, setOrders] = useState<Order[]>([]);
   const [dialogOpen, setDialogOpen] = useState(false);
@@ -46,7 +50,37 @@ const Orders = () => {
     checkAuth();
   }, [navigate]);
 
+  useEffect(() => {
+    if (!loading) {
+      fetchOrders();
+    }
+  }, [isReadOnly, loading]);
+
   const fetchOrders = async () => {
+    if (isReadOnly) {
+      setOrders([
+        {
+          id: "demo-order-1",
+          code: "DH-DEMO-001",
+          customer_name: "Khách Mẫu A",
+          customer_phone: "0900000001",
+          order_date: new Date().toISOString().slice(0, 10),
+          total_amount: 320000,
+          status: "preparing",
+        },
+        {
+          id: "demo-order-2",
+          code: "DH-DEMO-002",
+          customer_name: "Khách Mẫu B",
+          customer_phone: "0900000002",
+          order_date: new Date(Date.now() - 86400000).toISOString().slice(0, 10),
+          total_amount: 215000,
+          status: "delivered",
+        },
+      ]);
+      return;
+    }
+
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
@@ -98,8 +132,9 @@ const Orders = () => {
         <div>
           <h1 className="text-3xl font-bold mb-2">Quản Lý Đơn Hàng</h1>
           <p className="text-muted-foreground">Theo dõi và quản lý tất cả đơn hàng</p>
+          {isReadOnly && <p className="text-sm text-muted-foreground mt-1">Chế độ xem mẫu: bạn không thể tạo/sửa/xóa dữ liệu ở gói Unpaid.</p>}
         </div>
-        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-order">
+        <Button className="gap-2" onClick={() => setDialogOpen(true)} data-tutorial="add-order" disabled={isReadOnly}>
           <Plus className="h-4 w-4" />
           Thêm Đơn Hàng
         </Button>
@@ -167,6 +202,7 @@ const Orders = () => {
                       <Button 
                         variant="ghost" 
                         size="sm"
+                        disabled={isReadOnly}
                         onClick={() => {
                           setSelectedOrderId(order.id);
                           setDetailDialogOpen(true);
@@ -183,18 +219,22 @@ const Orders = () => {
         </CardContent>
       </Card>
 
-      <AddOrderDialog
-        open={dialogOpen}
-        onOpenChange={setDialogOpen}
-        onSuccess={fetchOrders}
-      />
+      {!isReadOnly && (
+        <AddOrderDialog
+          open={dialogOpen}
+          onOpenChange={setDialogOpen}
+          onSuccess={fetchOrders}
+        />
+      )}
       
-      <OrderDetailDialog
-        open={detailDialogOpen}
-        onOpenChange={setDetailDialogOpen}
-        orderId={selectedOrderId}
-        onSuccess={fetchOrders}
-      />
+      {!isReadOnly && (
+        <OrderDetailDialog
+          open={detailDialogOpen}
+          onOpenChange={setDetailDialogOpen}
+          orderId={selectedOrderId}
+          onSuccess={fetchOrders}
+        />
+      )}
     </div>
   );
 };

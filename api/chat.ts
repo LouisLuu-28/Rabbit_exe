@@ -33,8 +33,9 @@ Trả lời ngắn gọn, thân thiện bằng tiếng Việt.`;
         const response = result.response;
 
         return res.status(200).json({ text: response.text() });
-    } catch (error: any) {
+    } catch (error: unknown) {
         console.error('Lỗi API chat:', error);
-        return res.status(500).json({ error: 'Lỗi xử lý yêu cầu: ' + error.message });
+        const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+        return res.status(500).json({ error: 'Lỗi xử lý yêu cầu: ' + errorMessage });
     }
 }
