@@ -55,6 +55,26 @@ const effectivePlan = (plan: PlanTier, expiresAt: string | null) => {
   return expired ? "unpaid" : plan;
 };
 
+const buildCustomerMetadata = (
+  existingMetadata: Record<string, unknown> | undefined,
+  input: {
+    fullName?: string | null;
+    plan: PlanTier;
+    expiresAt: string | null;
+    canSelfManagePlan?: boolean;
+  },
+) => {
+  return {
+    ...(existingMetadata || {}),
+    full_name: input.fullName ?? (existingMetadata?.full_name as string | null | undefined) ?? null,
+    role: "customer",
+    plan: input.plan,
+    can_self_manage_plan: Boolean(input.canSelfManagePlan),
+    is_testing_account: false,
+    subscription_expires_at: input.expiresAt,
+  };
+};
+
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   res.setHeader("Access-Control-Allow-Credentials", "true");
   res.setHeader("Access-Control-Allow-Origin", "*");
@@ -113,6 +133,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return {
         id: user.id,
         email: user.email || "",
+        fullName: (user.user_metadata?.full_name as string | undefined) || null,
         role: user.user_metadata?.role === "admin" ? "admin" : "customer",
         plan: userPlan,
         canSelfManagePlan: Boolean(user.user_metadata?.can_self_manage_plan),
@@ -134,6 +155,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const fullName = String(body.fullName || "").trim() || null;
     const plan = body.plan;
     const expiresAt = toIsoOrNull(body.expiresAt);
+    const canSelfManagePlan = Boolean(body.canSelfManagePlan);
 
     if (!email || !password || !isValidPlan(plan) || plan === "unpaid") {
       return res.status(400).json({ error: "Invalid create payload" });
@@ -147,7 +169,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         full_name: fullName,
         role: "customer",
         plan,
-        can_self_manage_plan: false,
+        can_self_manage_plan: canSelfManagePlan,
         is_testing_account: false,
         subscription_expires_at: expiresAt,
       },
@@ -158,7 +180,13 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const dbPlan = effectivePlan(plan, expiresAt);
-    await adminClient.from("profiles").update({ plan: dbPlan }).eq("id", data.user.id);
+    await adminClient
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        plan: dbPlan,
+      })
+      .eq("id", data.user.id);
 
     return res.status(200).json({
       user: {
@@ -172,6 +200,8 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     const userId = String(body.userId || "").trim();
     const plan = body.plan;
     const expiresAt = toIsoOrNull(body.expiresAt);
+    const fullName = String(body.fullName || "").trim() || null;
+    const canSelfManagePlan = Boolean(body.canSelfManagePlan);
 
     if (!userId || !isValidPlan(plan)) {
       return res.status(400).json({ error: "Invalid assignPlan payload" });
@@ -186,14 +216,12 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       return res.status(400).json({ error: "Cannot modify admin account" });
     }
 
-    const nextMetadata = {
-      ...(existing.user.user_metadata || {}),
-      role: "customer",
+    const nextMetadata = buildCustomerMetadata(existing.user.user_metadata as Record<string, unknown> | undefined, {
+      fullName,
       plan,
-      can_self_manage_plan: false,
-      is_testing_account: false,
-      subscription_expires_at: expiresAt,
-    };
+      expiresAt,
+      canSelfManagePlan,
+    });
 
     const { error: updateError } = await adminClient.auth.admin.updateUserById(userId, {
       user_metadata: nextMetadata,
@@ -204,7 +232,36 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     }
 
     const dbPlan = effectivePlan(plan, expiresAt);
-    await adminClient.from("profiles").update({ plan: dbPlan }).eq("id", userId);
+    await adminClient
+      .from("profiles")
+      .update({
+        full_name: fullName,
+        plan: dbPlan,
+      })
+      .eq("id", userId);
+
+    return res.status(200).json({ success: true });
+  }
+
+  if (action === "delete") {
+    const userId = String(body.userId || "").trim();
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid delete payload" });
+    }
+
+    const { data: existing, error: getError } = await adminClient.auth.admin.getUserById(userId);
+    if (getError || !existing.user) {
+      return res.status(404).json({ error: getError?.message || "User not found" });
+    }
+
+    if (existing.user.user_metadata?.role === "admin") {
+      return res.status(400).json({ error: "Cannot delete admin account" });
+    }
+
+    const { error: deleteError } = await adminClient.auth.admin.deleteUser(userId);
+    if (deleteError) {
+      return res.status(400).json({ error: deleteError.message });
+    }
 
     return res.status(200).json({ success: true });
   }

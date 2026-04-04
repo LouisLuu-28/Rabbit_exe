@@ -14,6 +14,7 @@ import { useSubscription } from "@/hooks/use-subscription";
 type ManagedUser = {
   id: string;
   email: string;
+  fullName: string | null;
   role: "admin" | "customer";
   plan: PlanTier;
   canSelfManagePlan: boolean;
@@ -43,6 +44,7 @@ const Admin = () => {
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [creating, setCreating] = useState(false);
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
+  const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [adminApiAvailable, setAdminApiAvailable] = useState(true);
 
   const [newEmail, setNewEmail] = useState("");
@@ -53,6 +55,7 @@ const Admin = () => {
 
   const [editingPlans, setEditingPlans] = useState<Record<string, PlanTier>>({});
   const [editingExpiresAt, setEditingExpiresAt] = useState<Record<string, string>>({});
+  const [editingNames, setEditingNames] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (!loading && (!isAuthenticated || role !== "admin")) {
@@ -162,14 +165,17 @@ const Admin = () => {
 
       const nextPlans: Record<string, PlanTier> = {};
       const nextExpires: Record<string, string> = {};
+      const nextNames: Record<string, string> = {};
 
       nextUsers.forEach((user) => {
         nextPlans[user.id] = user.plan;
         nextExpires[user.id] = toDatetimeLocalValue(user.subscriptionExpiresAt);
+        nextNames[user.id] = user.fullName || "";
       });
 
       setEditingPlans(nextPlans);
       setEditingExpiresAt(nextExpires);
+      setEditingNames(nextNames);
     } catch (error) {
       setAdminApiAvailable(false);
       setUsers([]);
@@ -281,6 +287,7 @@ const Admin = () => {
           body: JSON.stringify({
             action: "assignPlan",
             userId,
+            fullName: editingNames[userId] || null,
             plan: editingPlans[userId],
             expiresAt: editingExpiresAt[userId] ? new Date(editingExpiresAt[userId]).toISOString() : null,
           }),
@@ -298,6 +305,50 @@ const Admin = () => {
       });
     } finally {
       setUpdatingUserId(null);
+    }
+  };
+
+  const handleDeleteUser = async (userId: string) => {
+    if (!adminApiAvailable) {
+      toast({
+        title: "Chưa thể xoá",
+        description: "Môi trường hiện tại không có Admin API để xoá tài khoản.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const confirmed = window.confirm("Bạn chắc chắn muốn xoá tài khoản khách hàng này?");
+    if (!confirmed) return;
+
+    setDeletingUserId(userId);
+    try {
+      const token = await withAdminToken();
+      await requestAdminApi(
+        "/api/admin-users",
+        {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            action: "delete",
+            userId,
+          }),
+        },
+        token,
+      );
+
+      toast({ title: "Thành công", description: "Đã xoá tài khoản khách hàng" });
+      await fetchUsers();
+    } catch (error) {
+      toast({
+        title: "Lỗi",
+        description: error instanceof Error ? error.message : "Xoá tài khoản thất bại",
+        variant: "destructive",
+      });
+    } finally {
+      setDeletingUserId(null);
     }
   };
 
@@ -377,15 +428,23 @@ const Admin = () => {
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
+                <TableHead>Họ tên</TableHead>
                 <TableHead>Gói</TableHead>
                 <TableHead>Hạn dùng</TableHead>
-                <TableHead className="w-[160px]">Thao tác</TableHead>
+                <TableHead className="w-[240px]">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {customerUsers.map((user) => (
                 <TableRow key={user.id}>
                   <TableCell>{user.email}</TableCell>
+                  <TableCell>
+                    <Input
+                      value={editingNames[user.id] || ""}
+                      onChange={(e) => setEditingNames((prev) => ({ ...prev, [user.id]: e.target.value }))}
+                      placeholder="Tên khách hàng"
+                    />
+                  </TableCell>
                   <TableCell>
                     <Select
                       value={editingPlans[user.id] || "basic"}
@@ -414,13 +473,23 @@ const Admin = () => {
                     />
                   </TableCell>
                   <TableCell>
-                    <Button
-                      size="sm"
-                      onClick={() => handleUpdatePlan(user.id)}
-                      disabled={updatingUserId === user.id}
-                    >
-                      {updatingUserId === user.id ? "Đang lưu..." : "Lưu"}
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button
+                        size="sm"
+                        onClick={() => handleUpdatePlan(user.id)}
+                        disabled={updatingUserId === user.id || deletingUserId === user.id}
+                      >
+                        {updatingUserId === user.id ? "Đang lưu..." : "Lưu"}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="destructive"
+                        onClick={() => handleDeleteUser(user.id)}
+                        disabled={deletingUserId === user.id || updatingUserId === user.id}
+                      >
+                        {deletingUserId === user.id ? "Đang xoá..." : "Xoá"}
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}
