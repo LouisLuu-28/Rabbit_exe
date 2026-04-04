@@ -1,4 +1,4 @@
-import { Home, ShoppingCart, CalendarDays, Package, DollarSign, User, LogOut, PanelLeftClose, PanelLeft } from "lucide-react";
+import { Home, ShoppingCart, CalendarDays, Package, DollarSign, User, LogOut, PanelLeftClose, PanelLeft, ShieldCheck } from "lucide-react";
 import { NavLink, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -27,11 +27,12 @@ const menuItems = [
   { title: "Kho Nguyên Liệu", url: "/inventory", icon: Package, feature: "inventory" as const },
   { title: "Tài Chính", url: "/financial", icon: DollarSign, feature: "financial" as const },
   { title: "Tài Khoản", url: "/account", icon: User },
+  { title: "Quản Trị", url: "/admin", icon: ShieldCheck, adminOnly: true },
 ];
 
 export function AppSidebar() {
   const { state, toggleSidebar } = useSidebar();
-  const { plan } = useSubscription();
+  const { plan, role } = useSubscription();
   const navigate = useNavigate();
   const { toast } = useToast();
   const collapsed = state === "collapsed";
@@ -94,6 +95,10 @@ export function AppSidebar() {
           <SidebarGroupContent>
             <SidebarMenu>
               {menuItems.map((item) => {
+                if (item.adminOnly && role !== "admin") {
+                  return null;
+                }
+
                 if (item.feature && !hasFeature(plan, item.feature)) {
                   return null;
                 }
@@ -105,6 +110,7 @@ export function AppSidebar() {
                   if (item.url === "/inventory") return "inventory-nav";
                   if (item.url === "/financial") return "financial-nav";
                   if (item.url === "/account") return "account-nav";
+                  if (item.url === "/admin") return "admin-nav";
                   return undefined;
                 };
 

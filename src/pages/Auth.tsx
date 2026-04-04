@@ -23,6 +23,12 @@ const Auth = () => {
   const [fullName, setFullName] = useState("");
 
   const navigateAfterAuth = useCallback((session: NonNullable<Awaited<ReturnType<typeof supabase.auth.getSession>>["data"]["session"]>) => {
+    const role = session.user.user_metadata?.role as string | undefined;
+    if (role === "admin") {
+      navigate("/admin");
+      return;
+    }
+
     const plan = normalizePlan(session.user.user_metadata?.plan as string | undefined);
     if (hasFeature(plan, "dashboard")) {
       navigate("/dashboard");
@@ -97,6 +103,10 @@ const Auth = () => {
       return;
     }
 
+    const normalizedEmail = email.trim().toLowerCase();
+    const isTestingAccount = normalizedEmail === "testing_account@gmail.com";
+    const isAdminAccount = normalizedEmail === "admin@gmail.com";
+
     setLoading(true);
     const { error } = await supabase.auth.signUp({
       email,
@@ -105,7 +115,11 @@ const Auth = () => {
         emailRedirectTo: `${window.location.origin}/auth`,
         data: {
           full_name: fullName,
-          plan: "unpaid",
+          role: isAdminAccount ? "admin" : "customer",
+          plan: isAdminAccount ? "premium" : "unpaid",
+          can_self_manage_plan: isTestingAccount,
+          is_testing_account: isTestingAccount,
+          subscription_expires_at: null,
         },
       },
     });

@@ -10,7 +10,6 @@ import { useToast } from "@/hooks/use-toast";
 import { User } from "lucide-react";
 import { normalizePlan, PLAN_DEFINITIONS, type PlanTier } from "@/lib/subscription";
 import { seedDemoDataForCurrentUser } from "@/lib/demoSeed";
-import { getActiveSessionUser } from "@/lib/authSession";
 import { useSubscription } from "@/hooks/use-subscription";
 
 const featureLabels: Record<string, string> = {
@@ -31,7 +30,16 @@ const Account = () => {
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
   const [plan, setPlan] = useState<PlanTier>("unpaid");
-  const { refreshSubscription } = useSubscription();
+  const {
+    refreshSubscription,
+    updatePlan,
+    canSelfManagePlan,
+    isTestingAccount,
+    role,
+    subscriptionExpiresAt,
+    isSubscriptionExpired,
+    rawPlan,
+  } = useSubscription();
 
   useEffect(() => {
     const loadUserData = async () => {
@@ -75,36 +83,29 @@ const Account = () => {
   };
 
   const handleUpdatePlan = async () => {
-    setSavingPlan(true);
-    const { user } = await getActiveSessionUser();
-
-    if (!user) {
-      setSavingPlan(false);
+    if (!canSelfManagePlan && role !== "admin") {
       toast({
-        title: "Lỗi",
-        description: "Phiên đăng nhập đã hết hạn, vui lòng đăng nhập lại.",
+        title: "Không thể đổi gói",
+        description: "Tài khoản khách hàng được cấp bởi admin không được tự thay đổi gói.",
         variant: "destructive",
       });
       return;
     }
 
-    const { error } = await supabase.auth.updateUser({ data: { plan } });
+    setSavingPlan(true);
+    const { error } = await updatePlan(plan);
 
     setSavingPlan(false);
 
     if (error) {
-      // Fallback local-only plan for testing flow when session token refresh has issues.
-      localStorage.setItem(`plan_override_${user.id}`, plan);
-      await refreshSubscription();
-
       toast({
-        title: "Đã lưu gói (local)",
-        description: "Hệ thống tạm lưu gói trên trình duyệt để tiếp tục test. Đăng nhập lại để đồng bộ cloud.",
+        title: "Lỗi cập nhật gói",
+        description: error.message,
+        variant: "destructive",
       });
       return;
     }
 
-    localStorage.removeItem(`plan_override_${user.id}`);
     await refreshSubscription();
 
     toast({
@@ -208,10 +209,21 @@ const Account = () => {
           <CardDescription>Chọn gói để giới hạn quyền truy cập tính năng theo mô hình kinh doanh</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="text-sm rounded-md border p-3 bg-muted/30 space-y-1">
+            <p><span className="font-medium">Loại tài khoản:</span> {role === "admin" ? "Admin" : isTestingAccount ? "Testing" : "Khách hàng"}</p>
+            <p><span className="font-medium">Gói đang áp dụng:</span> {PLAN_DEFINITIONS[isSubscriptionExpired ? "unpaid" : rawPlan].name}</p>
+            {subscriptionExpiresAt && (
+              <p><span className="font-medium">Hạn sử dụng:</span> {new Date(subscriptionExpiresAt).toLocaleString("vi-VN")}</p>
+            )}
+            {isSubscriptionExpired && (
+              <p className="text-orange-600">Gói đã hết hạn, hệ thống tự chuyển về Unpaid.</p>
+            )}
+          </div>
+
           <div className="space-y-2">
             <Label>Gói hiện tại</Label>
             <Select value={plan} onValueChange={(value) => setPlan(value as PlanTier)}>
-              <SelectTrigger>
+              <SelectTrigger disabled={!canSelfManagePlan && role !== "admin"}>
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -240,14 +252,20 @@ const Account = () => {
             )}
           </div>
 
-          <Button onClick={handleUpdatePlan} disabled={savingPlan}>
+          <Button onClick={handleUpdatePlan} disabled={savingPlan || (!canSelfManagePlan && role !== "admin")}>
             {savingPlan ? "Đang cập nhật..." : "Lưu gói"}
           </Button>
+
+          {!canSelfManagePlan && role !== "admin" && (
+            <p className="text-sm text-muted-foreground">
+              Tài khoản này do admin cấp nên không thể tự đổi gói.
+            </p>
+          )}
 
           <Button
             variant="outline"
             onClick={handleSeedDemo}
-            disabled={seedingDemo || plan === "unpaid"}
+            disabled={seedingDemo || plan === "unpaid" || (!isTestingAccount && role !== "admin")}
             title={plan === "unpaid" ? "Gói Unpaid chỉ được xem dữ liệu mẫu, không tạo thêm dữ liệu." : undefined}
           >
             {seedingDemo ? "Đang tạo dữ liệu demo..." : "Tạo dữ liệu demo theo gói hiện tại"}

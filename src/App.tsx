@@ -24,6 +24,7 @@ import MenuPlanning from "./pages/MenuPlanning";
 import Inventory from "./pages/Inventory";
 import Financial from "./pages/Financial";
 import Account from "./pages/Account";
+import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -66,6 +67,24 @@ const ProtectedFeatureRoute = ({
 
   if (!hasFeature(plan, feature)) {
     return <AccessDenied requiredPlan={getRequiredPlanForFeature(feature)} />;
+  }
+
+  return <>{children}</>;
+};
+
+const ProtectedAdminRoute = ({ children }: { children: React.ReactNode }) => {
+  const { loading, isAuthenticated, role } = useSubscription();
+
+  if (loading) {
+    return <div className="p-6">Đang tải...</div>;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/auth" replace />;
+  }
+
+  if (role !== "admin") {
+    return <Navigate to="/account" replace />;
   }
 
   return <>{children}</>;
@@ -119,6 +138,7 @@ const App = () => {
             <Route path="/inventory" element={<ProtectedFeatureRoute feature="inventory"><DashboardLayout><Inventory /></DashboardLayout></ProtectedFeatureRoute>} />
             <Route path="/financial" element={<ProtectedFeatureRoute feature="financial"><DashboardLayout><Financial /></DashboardLayout></ProtectedFeatureRoute>} />
             <Route path="/account" element={<DashboardLayout><Account /></DashboardLayout>} />
+            <Route path="/admin" element={<ProtectedAdminRoute><DashboardLayout><Admin /></DashboardLayout></ProtectedAdminRoute>} />
             {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
             <Route path="*" element={<NotFound />} />
           </Routes>
