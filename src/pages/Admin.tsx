@@ -236,50 +236,24 @@ const Admin = () => {
 
     try {
       const token = await withAdminToken();
-      const data = await requestAdminApi("/api/admin-users", { method: "GET" }, token);
+      const data = await requestAdminApi("", { method: "GET" }, token);
       setAdminApiAvailable(true);
       setListError(null);
 
       const nextUsers = (data.users || []) as ManagedUser[];
       applyUsersState(nextUsers);
     } catch (apiError) {
+      // Fallback to RPC
       setAdminApiAvailable(false);
-
       try {
         const fallbackUsers = await fetchUsersViaRpcFallback();
         setListError(null);
         applyUsersState(fallbackUsers);
       } catch (fallbackError) {
         setUsers([]);
-
-        const rawMessage =
-          fallbackError instanceof Error
-            ? fallbackError.message
-            : apiError instanceof Error
-              ? apiError.message
-              : "Không thể tải danh sách user";
-
-        const message =
-          rawMessage.toLowerCase().includes("admin_list_customers") ||
-          rawMessage.toLowerCase().includes("could not find the function")
-            ? "Thiếu RPC admin_list_customers trên Supabase. Hãy chạy migration mới rồi tải lại trang."
-            : rawMessage;
-
+        const message = fallbackError instanceof Error ? fallbackError.message : apiError instanceof Error ? apiError.message : "Không thể tải danh sách user";
         setListError(message);
-
-        if (message.toLowerCase().includes("forbidden")) {
-          toast({
-            title: "Lỗi quyền truy cập",
-            description: "Tài khoản hiện tại không có quyền admin hợp lệ.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Lỗi",
-            description: message,
-            variant: "destructive",
-          });
-        }
+        toast({ title: "Lỗi", description: message, variant: "destructive" });
       }
     } finally {
       setLoadingUsers(false);
