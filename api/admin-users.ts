@@ -129,16 +129,21 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     const users = (data.users || []).map((user) => {
       const userPlan = isValidPlan(user.user_metadata?.plan) ? user.user_metadata.plan : "unpaid";
+      const subscriptionExpiresAt = (user.user_metadata?.subscription_expires_at as string | undefined) || null;
+      const isExpired = Boolean(subscriptionExpiresAt) && Date.now() > new Date(subscriptionExpiresAt as string).getTime();
 
       return {
         id: user.id,
         email: user.email || "",
         fullName: (user.user_metadata?.full_name as string | undefined) || null,
         role: user.user_metadata?.role === "admin" ? "admin" : "customer",
-        plan: userPlan,
+        plan: isExpired ? "unpaid" : userPlan,
+        rawPlan: userPlan,
         canSelfManagePlan: Boolean(user.user_metadata?.can_self_manage_plan),
         isTestingAccount: Boolean(user.user_metadata?.is_testing_account),
-        subscriptionExpiresAt: (user.user_metadata?.subscription_expires_at as string | undefined) || null,
+        subscriptionExpiresAt,
+        isExpired,
+        lastSignInAt: user.last_sign_in_at || null,
         createdAt: user.created_at,
       };
     });

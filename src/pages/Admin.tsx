@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { type PlanTier } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
@@ -19,6 +20,14 @@ type ManagedUser = {
   plan: PlanTier;
   canSelfManagePlan: boolean;
   subscriptionExpiresAt: string | null;
+  isExpired?: boolean;
+  rawPlan?: PlanTier;
+  lastSignInAt?: string | null;
+  createdAt?: string;
+};
+
+type CustomerDetail = ManagedUser & {
+  passwordMask: string;
 };
 
 const toDatetimeLocalValue = (value: string | null) => {
@@ -46,6 +55,8 @@ const Admin = () => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [adminApiAvailable, setAdminApiAvailable] = useState(true);
+  const [detailOpen, setDetailOpen] = useState(false);
+  const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetail | null>(null);
 
   const [newEmail, setNewEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
@@ -352,6 +363,14 @@ const Admin = () => {
     }
   };
 
+  const openDetail = (user: ManagedUser) => {
+    setSelectedCustomer({
+      ...user,
+      passwordMask: "*******",
+    });
+    setDetailOpen(true);
+  };
+
   const customerUsers = useMemo(() => users.filter((u) => u.role !== "admin"), [users]);
 
   if (loading) {
@@ -431,7 +450,7 @@ const Admin = () => {
                 <TableHead>Họ tên</TableHead>
                 <TableHead>Gói</TableHead>
                 <TableHead>Hạn dùng</TableHead>
-                <TableHead className="w-[240px]">Thao tác</TableHead>
+                <TableHead className="w-[320px]">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -474,6 +493,9 @@ const Admin = () => {
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
+                      <Button size="sm" variant="outline" onClick={() => openDetail(user)}>
+                        Details
+                      </Button>
                       <Button
                         size="sm"
                         onClick={() => handleUpdatePlan(user.id)}
@@ -497,6 +519,62 @@ const Admin = () => {
           </Table>
         </CardContent>
       </Card>
+
+      <Dialog open={detailOpen} onOpenChange={setDetailOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Chi tiết khách hàng</DialogTitle>
+            <DialogDescription>Thông tin phục vụ hỗ trợ khách hàng và gia hạn gói.</DialogDescription>
+          </DialogHeader>
+
+          {selectedCustomer && (
+            <div className="space-y-3 text-sm">
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <p className="text-muted-foreground">Email</p>
+                  <p className="font-medium">{selectedCustomer.email}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Password</p>
+                  <p className="font-medium tracking-widest">{selectedCustomer.passwordMask}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Họ tên</p>
+                  <p className="font-medium">{selectedCustomer.fullName || "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Vai trò</p>
+                  <p className="font-medium">{selectedCustomer.role}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Gói hiện tại</p>
+                  <p className="font-medium">{selectedCustomer.plan}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Gói gốc</p>
+                  <p className="font-medium">{selectedCustomer.rawPlan || selectedCustomer.plan}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Hạn dùng</p>
+                  <p className="font-medium">{selectedCustomer.subscriptionExpiresAt ? new Date(selectedCustomer.subscriptionExpiresAt).toLocaleString("vi-VN") : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Trạng thái</p>
+                  <p className="font-medium">{selectedCustomer.isExpired ? "Hết hạn / Unpaid" : "Đang hoạt động"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Lần đăng nhập gần nhất</p>
+                  <p className="font-medium">{selectedCustomer.lastSignInAt ? new Date(selectedCustomer.lastSignInAt).toLocaleString("vi-VN") : "-"}</p>
+                </div>
+                <div>
+                  <p className="text-muted-foreground">Ngày tạo</p>
+                  <p className="font-medium">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleString("vi-VN") : "-"}</p>
+                </div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
