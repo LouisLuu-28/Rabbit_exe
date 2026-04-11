@@ -101,8 +101,14 @@ const Admin = () => {
     return session.access_token;
   };
 
-  const requestAdminApi = async (path: string, init: RequestInit, token: string) => {
-    const response = await fetch(path, {
+  const getEdgeFunctionUrl = () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    return `${supabaseUrl}/functions/v1/admin-users`;
+  };
+
+  const requestAdminApi = async (_path: string, init: RequestInit, token: string) => {
+    const url = getEdgeFunctionUrl();
+    const response = await fetch(url, {
       ...init,
       headers: {
         ...(init.headers || {}),
@@ -123,7 +129,7 @@ const Admin = () => {
     }
 
     if (!isJson) {
-      throw new Error("Admin API không trả về JSON hợp lệ. Kiểm tra môi trường deploy/API.");
+      throw new Error("Admin API không trả về JSON hợp lệ.");
     }
 
     return data;
@@ -230,50 +236,24 @@ const Admin = () => {
 
     try {
       const token = await withAdminToken();
-      const data = await requestAdminApi("/api/admin-users", { method: "GET" }, token);
+      const data = await requestAdminApi("", { method: "GET" }, token);
       setAdminApiAvailable(true);
       setListError(null);
 
       const nextUsers = (data.users || []) as ManagedUser[];
       applyUsersState(nextUsers);
     } catch (apiError) {
+      // Fallback to RPC
       setAdminApiAvailable(false);
-
       try {
         const fallbackUsers = await fetchUsersViaRpcFallback();
         setListError(null);
         applyUsersState(fallbackUsers);
       } catch (fallbackError) {
         setUsers([]);
-
-        const rawMessage =
-          fallbackError instanceof Error
-            ? fallbackError.message
-            : apiError instanceof Error
-              ? apiError.message
-              : "Không thể tải danh sách user";
-
-        const message =
-          rawMessage.toLowerCase().includes("admin_list_customers") ||
-          rawMessage.toLowerCase().includes("could not find the function")
-            ? "Thiếu RPC admin_list_customers trên Supabase. Hãy chạy migration mới rồi tải lại trang."
-            : rawMessage;
-
+        const message = fallbackError instanceof Error ? fallbackError.message : apiError instanceof Error ? apiError.message : "Không thể tải danh sách user";
         setListError(message);
-
-        if (message.toLowerCase().includes("forbidden")) {
-          toast({
-            title: "Lỗi quyền truy cập",
-            description: "Tài khoản hiện tại không có quyền admin hợp lệ.",
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Lỗi",
-            description: message,
-            variant: "destructive",
-          });
-        }
+        toast({ title: "Lỗi", description: message, variant: "destructive" });
       }
     } finally {
       setLoadingUsers(false);
@@ -299,7 +279,7 @@ const Admin = () => {
       let usedFallback = false;
       try {
         await requestAdminApi(
-          "/api/admin-users",
+          "",
           {
             method: "POST",
             headers: {
@@ -351,21 +331,12 @@ const Admin = () => {
   };
 
   const handleUpdatePlan = async (userId: string) => {
-    if (!adminApiAvailable) {
-      toast({
-        title: "Chưa thể cập nhật",
-        description: "Môi trường hiện tại không có Admin API. Hãy deploy Vercel và cấu hình SUPABASE_SERVICE_ROLE_KEY để cập nhật danh sách/gói tập trung.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUpdatingUserId(userId);
 
     try {
       const token = await withAdminToken();
       await requestAdminApi(
-        "/api/admin-users",
+        "",
         {
           method: "POST",
           headers: {
@@ -396,15 +367,6 @@ const Admin = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!adminApiAvailable) {
-      toast({
-        title: "Chưa thể xoá",
-        description: "Môi trường hiện tại không có Admin API để xoá tài khoản.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const confirmed = window.confirm("Bạn chắc chắn muốn xoá tài khoản khách hàng này?");
     if (!confirmed) return;
 
@@ -412,7 +374,7 @@ const Admin = () => {
     try {
       const token = await withAdminToken();
       await requestAdminApi(
-        "/api/admin-users",
+        "",
         {
           method: "POST",
           headers: {
