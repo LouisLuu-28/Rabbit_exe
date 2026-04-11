@@ -510,7 +510,38 @@ const Admin = () => {
           <CardTitle>Danh sách khách hàng</CardTitle>
           <CardDescription>{loadingUsers ? "Đang tải..." : `Tổng ${customerUsers.length} tài khoản khách hàng`}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="Tìm theo email hoặc tên..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="sm:max-w-xs"
+            />
+            <Select value={filterPlan} onValueChange={setFilterPlan}>
+              <SelectTrigger className="sm:w-[150px]">
+                <SelectValue placeholder="Lọc theo gói" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả gói</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="sm:w-[160px]">
+                <SelectValue placeholder="Lọc trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="active">Đang hoạt động</SelectItem>
+                <SelectItem value="expired">Hết hạn</SelectItem>
+                <SelectItem value="unpaid">Chưa trả phí</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
