@@ -69,6 +69,7 @@ const Admin = () => {
   const [updatingUserId, setUpdatingUserId] = useState<string | null>(null);
   const [deletingUserId, setDeletingUserId] = useState<string | null>(null);
   const [adminApiAvailable, setAdminApiAvailable] = useState(true);
+  const [listError, setListError] = useState<string | null>(null);
   const [detailOpen, setDetailOpen] = useState(false);
   const [selectedCustomer, setSelectedCustomer] = useState<CustomerDetail | null>(null);
 
@@ -231,6 +232,7 @@ const Admin = () => {
       const token = await withAdminToken();
       const data = await requestAdminApi("/api/admin-users", { method: "GET" }, token);
       setAdminApiAvailable(true);
+      setListError(null);
 
       const nextUsers = (data.users || []) as ManagedUser[];
       applyUsersState(nextUsers);
@@ -239,16 +241,25 @@ const Admin = () => {
 
       try {
         const fallbackUsers = await fetchUsersViaRpcFallback();
+        setListError(null);
         applyUsersState(fallbackUsers);
       } catch (fallbackError) {
         setUsers([]);
 
-        const message =
+        const rawMessage =
           fallbackError instanceof Error
             ? fallbackError.message
             : apiError instanceof Error
               ? apiError.message
               : "Không thể tải danh sách user";
+
+        const message =
+          rawMessage.toLowerCase().includes("admin_list_customers") ||
+          rawMessage.toLowerCase().includes("could not find the function")
+            ? "Thiếu RPC admin_list_customers trên Supabase. Hãy chạy migration mới rồi tải lại trang."
+            : rawMessage;
+
+        setListError(message);
 
         if (message.toLowerCase().includes("forbidden")) {
           toast({
@@ -452,6 +463,7 @@ const Admin = () => {
             Admin API chưa khả dụng ở môi trường hiện tại. Hệ thống đang đọc danh sách qua Supabase fallback (chỉ xem); để cập nhật/xoá tập trung cần deploy Vercel + SUPABASE_SERVICE_ROLE_KEY.
           </p>
         )}
+        {listError && <p className="text-sm text-red-600 mt-2">{listError}</p>}
       </div>
 
       <Card>
