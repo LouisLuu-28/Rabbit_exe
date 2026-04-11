@@ -367,15 +367,6 @@ const Admin = () => {
   };
 
   const handleDeleteUser = async (userId: string) => {
-    if (!adminApiAvailable) {
-      toast({
-        title: "Chưa thể xoá",
-        description: "Môi trường hiện tại không có Admin API để xoá tài khoản.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     const confirmed = window.confirm("Bạn chắc chắn muốn xoá tài khoản khách hàng này?");
     if (!confirmed) return;
 
