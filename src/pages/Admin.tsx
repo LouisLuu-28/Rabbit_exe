@@ -331,15 +331,6 @@ const Admin = () => {
   };
 
   const handleUpdatePlan = async (userId: string) => {
-    if (!adminApiAvailable) {
-      toast({
-        title: "Chưa thể cập nhật",
-        description: "Môi trường hiện tại không có Admin API. Hãy deploy Vercel và cấu hình SUPABASE_SERVICE_ROLE_KEY để cập nhật danh sách/gói tập trung.",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setUpdatingUserId(userId);
 
     try {
