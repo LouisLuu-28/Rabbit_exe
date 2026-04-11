@@ -413,7 +413,32 @@ const Admin = () => {
     setDetailOpen(true);
   };
 
-  const customerUsers = useMemo(() => users.filter((u) => u.role !== "admin"), [users]);
+  const customerUsers = useMemo(() => {
+    let filtered = users.filter((u) => u.role !== "admin");
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(
+        (u) =>
+          u.email.toLowerCase().includes(q) ||
+          (u.fullName || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (filterPlan !== "all") {
+      filtered = filtered.filter((u) => u.plan === filterPlan);
+    }
+
+    if (filterStatus === "active") {
+      filtered = filtered.filter((u) => !u.isExpired && u.plan !== "unpaid");
+    } else if (filterStatus === "expired") {
+      filtered = filtered.filter((u) => u.isExpired === true);
+    } else if (filterStatus === "unpaid") {
+      filtered = filtered.filter((u) => u.plan === "unpaid");
+    }
+
+    return filtered;
+  }, [users, searchQuery, filterPlan, filterStatus]);
 
   if (loading) {
     return <div className="p-6">Đang tải...</div>;
