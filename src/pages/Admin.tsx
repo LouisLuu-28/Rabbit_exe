@@ -9,7 +9,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { type PlanTier } from "@/lib/subscription";
+import { normalizePlan, type PlanTier } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
 
 type ManagedUser = {
@@ -28,6 +28,20 @@ type ManagedUser = {
 
 type CustomerDetail = ManagedUser & {
   passwordMask: string;
+};
+
+type CustomerRpcRow = {
+  id: string;
+  email: string;
+  full_name: string | null;
+  role: string;
+  plan: string;
+  raw_plan: string;
+  can_self_manage_plan: boolean;
+  subscription_expires_at: string | null;
+  is_expired: boolean;
+  last_sign_in_at: string | null;
+  created_at: string | null;
 };
 
 const toDatetimeLocalValue = (value: string | null) => {
@@ -114,6 +128,53 @@ const Admin = () => {
     return data;
   };
 
+  const applyUsersState = (nextUsers: ManagedUser[]) => {
+    setUsers(nextUsers);
+
+    const nextPlans: Record<string, PlanTier> = {};
+    const nextExpires: Record<string, string> = {};
+    const nextNames: Record<string, string> = {};
+
+    nextUsers.forEach((user) => {
+      nextPlans[user.id] = user.plan;
+      nextExpires[user.id] = toDatetimeLocalValue(user.subscriptionExpiresAt);
+      nextNames[user.id] = user.fullName || "";
+    });
+
+    setEditingPlans(nextPlans);
+    setEditingExpiresAt(nextExpires);
+    setEditingNames(nextNames);
+  };
+
+  const fetchUsersViaRpcFallback = async () => {
+    const { data, error } = await supabase.rpc("admin_list_customers");
+
+    if (error) {
+      throw new Error(error.message || "Không thể tải danh sách khách hàng từ Supabase.");
+    }
+
+    const mappedUsers = ((data || []) as CustomerRpcRow[]).map((row) => {
+      const plan = normalizePlan(row.plan || "unpaid");
+      const rawPlan = normalizePlan(row.raw_plan || plan || "unpaid");
+
+      return {
+        id: row.id,
+        email: row.email || "",
+        fullName: row.full_name,
+        role: row.role === "admin" ? "admin" : "customer",
+        plan,
+        rawPlan,
+        canSelfManagePlan: Boolean(row.can_self_manage_plan),
+        subscriptionExpiresAt: row.subscription_expires_at || null,
+        isExpired: Boolean(row.is_expired),
+        lastSignInAt: row.last_sign_in_at || null,
+        createdAt: row.created_at || undefined,
+      } as ManagedUser;
+    });
+
+    return mappedUsers;
+  };
+
   const createCustomerViaPublicSignup = async (payload: {
     email: string;
     password: string;
@@ -172,32 +233,36 @@ const Admin = () => {
       setAdminApiAvailable(true);
 
       const nextUsers = (data.users || []) as ManagedUser[];
-      setUsers(nextUsers);
-
-      const nextPlans: Record<string, PlanTier> = {};
-      const nextExpires: Record<string, string> = {};
-      const nextNames: Record<string, string> = {};
-
-      nextUsers.forEach((user) => {
-        nextPlans[user.id] = user.plan;
-        nextExpires[user.id] = toDatetimeLocalValue(user.subscriptionExpiresAt);
-        nextNames[user.id] = user.fullName || "";
-      });
-
-      setEditingPlans(nextPlans);
-      setEditingExpiresAt(nextExpires);
-      setEditingNames(nextNames);
-    } catch (error) {
+      applyUsersState(nextUsers);
+    } catch (apiError) {
       setAdminApiAvailable(false);
-      setUsers([]);
 
-      const message = error instanceof Error ? error.message : "Không thể tải danh sách user";
-      if (message.toLowerCase().includes("forbidden")) {
-        toast({
-          title: "Lỗi quyền truy cập",
-          description: "Tài khoản hiện tại không có quyền admin hợp lệ.",
-          variant: "destructive",
-        });
+      try {
+        const fallbackUsers = await fetchUsersViaRpcFallback();
+        applyUsersState(fallbackUsers);
+      } catch (fallbackError) {
+        setUsers([]);
+
+        const message =
+          fallbackError instanceof Error
+            ? fallbackError.message
+            : apiError instanceof Error
+              ? apiError.message
+              : "Không thể tải danh sách user";
+
+        if (message.toLowerCase().includes("forbidden")) {
+          toast({
+            title: "Lỗi quyền truy cập",
+            description: "Tài khoản hiện tại không có quyền admin hợp lệ.",
+            variant: "destructive",
+          });
+        } else {
+          toast({
+            title: "Lỗi",
+            description: message,
+            variant: "destructive",
+          });
+        }
       }
     } finally {
       setLoadingUsers(false);
@@ -384,7 +449,7 @@ const Admin = () => {
         <p className="text-muted-foreground">Admin cấp tài khoản, gói và thời hạn sử dụng cho khách hàng.</p>
         {!adminApiAvailable && (
           <p className="text-sm text-amber-600 mt-2">
-            Admin API chưa khả dụng ở môi trường hiện tại. Bạn vẫn có thể tạo account bằng fallback, nhưng danh sách/cập nhật gói tập trung cần deploy Vercel + SUPABASE_SERVICE_ROLE_KEY.
+            Admin API chưa khả dụng ở môi trường hiện tại. Hệ thống đang đọc danh sách qua Supabase fallback (chỉ xem); để cập nhật/xoá tập trung cần deploy Vercel + SUPABASE_SERVICE_ROLE_KEY.
           </p>
         )}
       </div>
