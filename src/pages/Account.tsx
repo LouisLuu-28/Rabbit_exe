@@ -26,9 +26,13 @@ const Account = () => {
   const { toast } = useToast();
   const [loading, setLoading] = useState(true);
   const [savingPlan, setSavingPlan] = useState(false);
+  const [changingPassword, setChangingPassword] = useState(false);
   const [seedingDemo, setSeedingDemo] = useState(false);
   const [email, setEmail] = useState("");
   const [fullName, setFullName] = useState("");
+  const [currentPassword, setCurrentPassword] = useState("");
+  const [newPassword, setNewPassword] = useState("");
+  const [confirmNewPassword, setConfirmNewPassword] = useState("");
   const [plan, setPlan] = useState<PlanTier>("unpaid");
   const {
     refreshSubscription,
@@ -114,6 +118,88 @@ const Account = () => {
     });
   };
 
+  const handleChangePassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    if (!currentPassword || !newPassword || !confirmNewPassword) {
+      toast({
+        title: "Thiếu thông tin",
+        description: "Vui lòng nhập đầy đủ mật khẩu hiện tại, mật khẩu mới và xác nhận mật khẩu mới.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword.length < 6) {
+      toast({
+        title: "Mật khẩu chưa hợp lệ",
+        description: "Mật khẩu mới phải có ít nhất 6 ký tự.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword !== confirmNewPassword) {
+      toast({
+        title: "Xác nhận mật khẩu không khớp",
+        description: "Vui lòng nhập lại mật khẩu mới giống nhau ở cả hai ô.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (newPassword === currentPassword) {
+      toast({
+        title: "Mật khẩu mới trùng mật khẩu cũ",
+        description: "Vui lòng chọn mật khẩu mới khác mật khẩu hiện tại.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setChangingPassword(true);
+
+    try {
+      const { error: verifyError } = await supabase.auth.signInWithPassword({
+        email,
+        password: currentPassword,
+      });
+
+      if (verifyError) {
+        toast({
+          title: "Mật khẩu hiện tại không đúng",
+          description: "Vui lòng kiểm tra lại mật khẩu hiện tại.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { error: updatePasswordError } = await supabase.auth.updateUser({
+        password: newPassword,
+      });
+
+      if (updatePasswordError) {
+        toast({
+          title: "Đổi mật khẩu thất bại",
+          description: updatePasswordError.message,
+          variant: "destructive",
+        });
+        return;
+      }
+
+      setCurrentPassword("");
+      setNewPassword("");
+      setConfirmNewPassword("");
+
+      toast({
+        title: "Thành công",
+        description: "Bạn đã đổi mật khẩu thành công.",
+      });
+    } finally {
+      setChangingPassword(false);
+    }
+  };
+
   const handleSeedDemo = async () => {
     setSeedingDemo(true);
     const { result, error } = await seedDemoDataForCurrentUser(plan);
@@ -194,12 +280,50 @@ const Account = () => {
       <Card>
         <CardHeader>
           <CardTitle>Đổi Mật Khẩu</CardTitle>
-          <CardDescription>Bạn có thể đổi mật khẩu bằng cách đăng xuất và sử dụng chức năng "Quên mật khẩu"</CardDescription>
+          <CardDescription>Nhập mật khẩu hiện tại và mật khẩu mới để cập nhật bảo mật tài khoản.</CardDescription>
         </CardHeader>
         <CardContent>
-          <Button variant="outline" onClick={() => navigate("/forgot-password")} data-tutorial="account-change-password">
-            Đổi Mật Khẩu
-          </Button>
+          <form onSubmit={handleChangePassword} className="space-y-4" data-tutorial="account-change-password">
+            <div className="space-y-2">
+              <Label htmlFor="currentPassword">Mật khẩu hiện tại</Label>
+              <Input
+                id="currentPassword"
+                type="password"
+                value={currentPassword}
+                onChange={(e) => setCurrentPassword(e.target.value)}
+                placeholder="Nhập mật khẩu hiện tại"
+                autoComplete="current-password"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="newPassword">Mật khẩu mới</Label>
+              <Input
+                id="newPassword"
+                type="password"
+                value={newPassword}
+                onChange={(e) => setNewPassword(e.target.value)}
+                placeholder="Ít nhất 6 ký tự"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="confirmNewPassword">Nhập lại mật khẩu mới</Label>
+              <Input
+                id="confirmNewPassword"
+                type="password"
+                value={confirmNewPassword}
+                onChange={(e) => setConfirmNewPassword(e.target.value)}
+                placeholder="Nhập lại mật khẩu mới"
+                autoComplete="new-password"
+              />
+            </div>
+
+            <Button type="submit" disabled={changingPassword}>
+              {changingPassword ? "Đang đổi mật khẩu..." : "Lưu mật khẩu mới"}
+            </Button>
+          </form>
         </CardContent>
       </Card>
 
