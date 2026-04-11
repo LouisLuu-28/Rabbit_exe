@@ -83,6 +83,10 @@ const Admin = () => {
   const [editingExpiresAt, setEditingExpiresAt] = useState<Record<string, string>>({});
   const [editingNames, setEditingNames] = useState<Record<string, string>>({});
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPlan, setFilterPlan] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
   useEffect(() => {
     if (!loading && (!isAuthenticated || role !== "admin")) {
       navigate("/account");
@@ -409,7 +413,32 @@ const Admin = () => {
     setDetailOpen(true);
   };
 
-  const customerUsers = useMemo(() => users.filter((u) => u.role !== "admin"), [users]);
+  const customerUsers = useMemo(() => {
+    let filtered = users.filter((u) => u.role !== "admin");
+
+    if (searchQuery.trim()) {
+      const q = searchQuery.trim().toLowerCase();
+      filtered = filtered.filter(
+        (u) =>
+          u.email.toLowerCase().includes(q) ||
+          (u.fullName || "").toLowerCase().includes(q)
+      );
+    }
+
+    if (filterPlan !== "all") {
+      filtered = filtered.filter((u) => u.plan === filterPlan);
+    }
+
+    if (filterStatus === "active") {
+      filtered = filtered.filter((u) => !u.isExpired && u.plan !== "unpaid");
+    } else if (filterStatus === "expired") {
+      filtered = filtered.filter((u) => u.isExpired === true);
+    } else if (filterStatus === "unpaid") {
+      filtered = filtered.filter((u) => u.plan === "unpaid");
+    }
+
+    return filtered;
+  }, [users, searchQuery, filterPlan, filterStatus]);
 
   if (loading) {
     return <div className="p-6">Đang tải...</div>;
@@ -481,7 +510,38 @@ const Admin = () => {
           <CardTitle>Danh sách khách hàng</CardTitle>
           <CardDescription>{loadingUsers ? "Đang tải..." : `Tổng ${customerUsers.length} tài khoản khách hàng`}</CardDescription>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
+          <div className="flex flex-col sm:flex-row gap-3">
+            <Input
+              placeholder="Tìm theo email hoặc tên..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
+              className="sm:max-w-xs"
+            />
+            <Select value={filterPlan} onValueChange={setFilterPlan}>
+              <SelectTrigger className="sm:w-[150px]">
+                <SelectValue placeholder="Lọc theo gói" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả gói</SelectItem>
+                <SelectItem value="unpaid">Unpaid</SelectItem>
+                <SelectItem value="basic">Basic</SelectItem>
+                <SelectItem value="standard">Standard</SelectItem>
+                <SelectItem value="premium">Premium</SelectItem>
+              </SelectContent>
+            </Select>
+            <Select value={filterStatus} onValueChange={setFilterStatus}>
+              <SelectTrigger className="sm:w-[160px]">
+                <SelectValue placeholder="Lọc trạng thái" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Tất cả trạng thái</SelectItem>
+                <SelectItem value="active">Đang hoạt động</SelectItem>
+                <SelectItem value="expired">Hết hạn</SelectItem>
+                <SelectItem value="unpaid">Chưa trả phí</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
           <Table>
             <TableHeader>
               <TableRow>
