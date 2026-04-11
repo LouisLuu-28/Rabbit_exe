@@ -279,7 +279,7 @@ const Admin = () => {
       let usedFallback = false;
       try {
         await requestAdminApi(
-          "/api/admin-users",
+          "",
           {
             method: "POST",
             headers: {
@@ -345,7 +345,7 @@ const Admin = () => {
     try {
       const token = await withAdminToken();
       await requestAdminApi(
-        "/api/admin-users",
+        "",
         {
           method: "POST",
           headers: {
@@ -392,7 +392,7 @@ const Admin = () => {
     try {
       const token = await withAdminToken();
       await requestAdminApi(
-        "/api/admin-users",
+        "",
         {
           method: "POST",
           headers: {
