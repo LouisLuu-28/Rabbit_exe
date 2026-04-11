@@ -69,13 +69,6 @@ const planLabelMap: Record<PlanTier, string> = {
   premium: "Premium",
 };
 
-const getPlanBadgeClass = (plan: PlanTier) => {
-  if (plan === "premium") return "bg-emerald-100 text-emerald-700 border-emerald-200";
-  if (plan === "standard") return "bg-blue-100 text-blue-700 border-blue-200";
-  if (plan === "basic") return "bg-violet-100 text-violet-700 border-violet-200";
-  return "bg-slate-100 text-slate-700 border-slate-200";
-};
-
 const formatDateTimeVi = (value: string | null | undefined) => {
   if (!value) return "-";
   const date = new Date(value);
@@ -479,8 +472,8 @@ const Admin = () => {
   }
 
   return (
-    <div className="p-6 space-y-6 bg-slate-50/40 min-h-screen">
-      <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 text-white overflow-hidden">
+    <div className="p-6 space-y-6 bg-orange-50/40 min-h-screen">
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-orange-600 via-orange-500 to-amber-500 text-white overflow-hidden">
         <CardContent className="p-6 md:p-8">
           <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
             <div className="space-y-2">
@@ -515,40 +508,42 @@ const Admin = () => {
       </Card>
 
       <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-orange-200 bg-orange-50/40">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Tổng tài khoản</p>
               <p className="text-2xl font-bold">{stats.total}</p>
             </div>
-            <Users className="h-5 w-5 text-slate-500" />
+            <Users className="h-5 w-5 text-orange-500" />
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-emerald-200">
+        <Card className="shadow-sm border-orange-200 bg-orange-50/40">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Đang hoạt động</p>
-              <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.active}</p>
             </div>
-            <CreditCard className="h-5 w-5 text-emerald-500" />
+            <CreditCard className="h-5 w-5 text-orange-500" />
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-amber-200">
+        <Card className="shadow-sm border-orange-200 bg-orange-50/40">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Hết hạn</p>
-              <p className="text-2xl font-bold text-amber-600">{stats.expired}</p>
+              <p className="text-2xl font-bold text-orange-600">{stats.expired}</p>
             </div>
-            <CalendarClock className="h-5 w-5 text-amber-500" />
+            <CalendarClock className="h-5 w-5 text-orange-500" />
           </CardContent>
         </Card>
-        <Card className="shadow-sm border-slate-200">
+        <Card className="shadow-sm border-orange-200 bg-orange-50/40">
           <CardContent className="p-4 flex items-center justify-between">
             <div>
               <p className="text-sm text-muted-foreground">Unpaid</p>
-              <p className="text-2xl font-bold text-slate-700">{stats.unpaid}</p>
+              <p className="text-2xl font-bold text-orange-700">{stats.unpaid}</p>
             </div>
-            <Badge variant="outline">{Math.round((stats.unpaid / Math.max(stats.total, 1)) * 100)}%</Badge>
+            <Badge variant="outline" className="border-orange-200 text-orange-700 bg-orange-100/70">
+              {Math.round((stats.unpaid / Math.max(stats.total, 1)) * 100)}%
+            </Badge>
           </CardContent>
         </Card>
       </div>
@@ -556,7 +551,7 @@ const Admin = () => {
       <Card className="shadow-sm">
         <CardHeader>
           <CardTitle className="flex items-center gap-2">
-            <UserPlus className="h-5 w-5 text-indigo-600" />
+            <UserPlus className="h-5 w-5 text-orange-600" />
             Tạo tài khoản khách hàng
           </CardTitle>
           <CardDescription>Tài khoản tạo tại đây sẽ không được tự thay đổi gói.</CardDescription>
@@ -667,37 +662,29 @@ const Admin = () => {
                 <TableRow key={user.id}>
                   <TableCell className="font-medium">{user.email}</TableCell>
                   <TableCell>
-                    <div className="space-y-2">
-                      <Input
-                        value={editingNames[user.id] || ""}
-                        onChange={(e) => setEditingNames((prev) => ({ ...prev, [user.id]: e.target.value }))}
-                        placeholder="Tên khách hàng"
-                      />
-                      <p className="text-xs text-muted-foreground">Cập nhật tên hiển thị của khách hàng</p>
-                    </div>
+                    <Input
+                      value={editingNames[user.id] || ""}
+                      onChange={(e) => setEditingNames((prev) => ({ ...prev, [user.id]: e.target.value }))}
+                      placeholder="Tên khách hàng"
+                    />
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-2">
-                      <Badge variant="outline" className={cn("capitalize", getPlanBadgeClass(editingPlans[user.id] || user.plan))}>
-                        {planLabelMap[editingPlans[user.id] || user.plan]}
-                      </Badge>
-                      <Select
-                        value={editingPlans[user.id] || "basic"}
-                        onValueChange={(value) =>
-                          setEditingPlans((prev) => ({ ...prev, [user.id]: value as PlanTier }))
-                        }
-                      >
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          <SelectItem value="unpaid">Unpaid</SelectItem>
-                          <SelectItem value="basic">Basic</SelectItem>
-                          <SelectItem value="standard">Standard</SelectItem>
-                          <SelectItem value="premium">Premium</SelectItem>
-                        </SelectContent>
-                      </Select>
-                    </div>
+                    <Select
+                      value={editingPlans[user.id] || "basic"}
+                      onValueChange={(value) =>
+                        setEditingPlans((prev) => ({ ...prev, [user.id]: value as PlanTier }))
+                      }
+                    >
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="unpaid">Unpaid</SelectItem>
+                        <SelectItem value="basic">Basic</SelectItem>
+                        <SelectItem value="standard">Standard</SelectItem>
+                        <SelectItem value="premium">Premium</SelectItem>
+                      </SelectContent>
+                    </Select>
                   </TableCell>
                   <TableCell>
                     <Badge
@@ -712,7 +699,7 @@ const Admin = () => {
                     </Badge>
                   </TableCell>
                   <TableCell>
-                    <div className="space-y-2 min-w-[180px]">
+                    <div className="min-w-[180px]">
                       <Input
                         type="datetime-local"
                         value={editingExpiresAt[user.id] || ""}
@@ -720,7 +707,6 @@ const Admin = () => {
                           setEditingExpiresAt((prev) => ({ ...prev, [user.id]: e.target.value }))
                         }
                       />
-                      <p className="text-xs text-muted-foreground">{formatDateTimeVi(user.subscriptionExpiresAt)}</p>
                     </div>
                   </TableCell>
                   <TableCell>
