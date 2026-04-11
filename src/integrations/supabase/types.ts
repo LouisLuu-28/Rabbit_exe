@@ -374,21 +374,18 @@ export type Database = {
           created_at: string | null
           full_name: string | null
           id: string
-          plan: string | null
           updated_at: string | null
         }
         Insert: {
           created_at?: string | null
           full_name?: string | null
           id: string
-          plan?: string | null
           updated_at?: string | null
         }
         Update: {
           created_at?: string | null
           full_name?: string | null
           id?: string
-          plan?: string | null
           updated_at?: string | null
         }
         Relationships: []
@@ -441,19 +438,19 @@ export type Database = {
     }
     Functions: {
       admin_list_customers: {
-        Args: Record<PropertyKey, never>
+        Args: never
         Returns: {
           can_self_manage_plan: boolean
-          created_at: string | null
+          created_at: string
           email: string
-          full_name: string | null
+          full_name: string
           id: string
           is_expired: boolean
-          last_sign_in_at: string | null
+          last_sign_in_at: string
           plan: string
           raw_plan: string
           role: string
-          subscription_expires_at: string | null
+          subscription_expires_at: string
         }[]
       }
       generate_ingredient_code: { Args: { p_user_id: string }; Returns: string }
