@@ -101,8 +101,14 @@ const Admin = () => {
     return session.access_token;
   };
 
-  const requestAdminApi = async (path: string, init: RequestInit, token: string) => {
-    const response = await fetch(path, {
+  const getEdgeFunctionUrl = () => {
+    const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+    return `${supabaseUrl}/functions/v1/admin-users`;
+  };
+
+  const requestAdminApi = async (_path: string, init: RequestInit, token: string) => {
+    const url = getEdgeFunctionUrl();
+    const response = await fetch(url, {
       ...init,
       headers: {
         ...(init.headers || {}),
@@ -123,7 +129,7 @@ const Admin = () => {
     }
 
     if (!isJson) {
-      throw new Error("Admin API không trả về JSON hợp lệ. Kiểm tra môi trường deploy/API.");
+      throw new Error("Admin API không trả về JSON hợp lệ.");
     }
 
     return data;
