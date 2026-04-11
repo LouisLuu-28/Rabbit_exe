@@ -8,9 +8,13 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
 import { useToast } from "@/hooks/use-toast";
 import { normalizePlan, type PlanTier } from "@/lib/subscription";
 import { useSubscription } from "@/hooks/use-subscription";
+import { cn } from "@/lib/utils";
+import { CalendarClock, CreditCard, Search, Shield, UserPlus, Users } from "lucide-react";
 
 type ManagedUser = {
   id: string;
@@ -56,6 +60,27 @@ const toDatetimeLocalValue = (value: string | null) => {
   const hh = pad(date.getHours());
   const mi = pad(date.getMinutes());
   return `${yyyy}-${mm}-${dd}T${hh}:${mi}`;
+};
+
+const planLabelMap: Record<PlanTier, string> = {
+  unpaid: "Unpaid",
+  basic: "Basic",
+  standard: "Standard",
+  premium: "Premium",
+};
+
+const getPlanBadgeClass = (plan: PlanTier) => {
+  if (plan === "premium") return "bg-emerald-100 text-emerald-700 border-emerald-200";
+  if (plan === "standard") return "bg-blue-100 text-blue-700 border-blue-200";
+  if (plan === "basic") return "bg-violet-100 text-violet-700 border-violet-200";
+  return "bg-slate-100 text-slate-700 border-slate-200";
+};
+
+const formatDateTimeVi = (value: string | null | undefined) => {
+  if (!value) return "-";
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) return "-";
+  return date.toLocaleString("vi-VN");
 };
 
 const Admin = () => {
@@ -440,30 +465,104 @@ const Admin = () => {
     return filtered;
   }, [users, searchQuery, filterPlan, filterStatus]);
 
+  const stats = useMemo(() => {
+    const total = customerUsers.length;
+    const active = customerUsers.filter((u) => !u.isExpired && u.plan !== "unpaid").length;
+    const expired = customerUsers.filter((u) => u.isExpired).length;
+    const unpaid = customerUsers.filter((u) => u.plan === "unpaid").length;
+
+    return { total, active, expired, unpaid };
+  }, [customerUsers]);
+
   if (loading) {
     return <div className="p-6">Đang tải...</div>;
   }
 
   return (
-    <div className="p-6 space-y-6">
-      <div>
-        <h1 className="text-3xl font-bold mb-2">Quản Trị Gói Khách Hàng</h1>
-        <p className="text-muted-foreground">Admin cấp tài khoản, gói và thời hạn sử dụng cho khách hàng.</p>
-        {!adminApiAvailable && (
-          <p className="text-sm text-amber-600 mt-2">
-            Admin API chưa khả dụng ở môi trường hiện tại. Hệ thống đang đọc danh sách qua Supabase fallback (chỉ xem); để cập nhật/xoá tập trung cần deploy Vercel + SUPABASE_SERVICE_ROLE_KEY.
-          </p>
-        )}
-        {listError && <p className="text-sm text-red-600 mt-2">{listError}</p>}
+    <div className="p-6 space-y-6 bg-slate-50/40 min-h-screen">
+      <Card className="border-0 shadow-lg bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-900 text-white overflow-hidden">
+        <CardContent className="p-6 md:p-8">
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div className="space-y-2">
+              <div className="inline-flex items-center gap-2 rounded-full bg-white/10 px-3 py-1 text-xs font-medium">
+                <Shield className="h-3.5 w-3.5" />
+                Khu vực quản trị
+              </div>
+              <h1 className="text-3xl md:text-4xl font-bold">Quản lý thông tin khách hàng</h1>
+              <p className="text-white/80 max-w-2xl">
+                Quản lý tài khoản, gói dịch vụ và thời hạn theo giao diện tập trung, trực quan và dễ thao tác.
+              </p>
+            </div>
+            <div className="grid grid-cols-2 gap-3 min-w-[260px]">
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-xs text-white/70">Tổng khách hàng</p>
+                <p className="text-2xl font-semibold">{stats.total}</p>
+              </div>
+              <div className="rounded-xl bg-white/10 p-3">
+                <p className="text-xs text-white/70">Đang hoạt động</p>
+                <p className="text-2xl font-semibold">{stats.active}</p>
+              </div>
+            </div>
+          </div>
+
+          {!adminApiAvailable && (
+            <p className="text-sm text-amber-200 mt-4">
+              Admin API chưa khả dụng ở môi trường hiện tại. Hệ thống đang đọc danh sách qua Supabase fallback (chỉ xem); để cập nhật/xoá tập trung cần deploy Vercel + SUPABASE_SERVICE_ROLE_KEY.
+            </p>
+          )}
+          {listError && <p className="text-sm text-red-200 mt-2">{listError}</p>}
+        </CardContent>
+      </Card>
+
+      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <Card className="shadow-sm border-slate-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Tổng tài khoản</p>
+              <p className="text-2xl font-bold">{stats.total}</p>
+            </div>
+            <Users className="h-5 w-5 text-slate-500" />
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-emerald-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Đang hoạt động</p>
+              <p className="text-2xl font-bold text-emerald-600">{stats.active}</p>
+            </div>
+            <CreditCard className="h-5 w-5 text-emerald-500" />
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-amber-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Hết hạn</p>
+              <p className="text-2xl font-bold text-amber-600">{stats.expired}</p>
+            </div>
+            <CalendarClock className="h-5 w-5 text-amber-500" />
+          </CardContent>
+        </Card>
+        <Card className="shadow-sm border-slate-200">
+          <CardContent className="p-4 flex items-center justify-between">
+            <div>
+              <p className="text-sm text-muted-foreground">Unpaid</p>
+              <p className="text-2xl font-bold text-slate-700">{stats.unpaid}</p>
+            </div>
+            <Badge variant="outline">{Math.round((stats.unpaid / Math.max(stats.total, 1)) * 100)}%</Badge>
+          </CardContent>
+        </Card>
       </div>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
-          <CardTitle>Tạo tài khoản khách hàng</CardTitle>
+          <CardTitle className="flex items-center gap-2">
+            <UserPlus className="h-5 w-5 text-indigo-600" />
+            Tạo tài khoản khách hàng
+          </CardTitle>
           <CardDescription>Tài khoản tạo tại đây sẽ không được tự thay đổi gói.</CardDescription>
         </CardHeader>
         <CardContent>
-          <form className="grid grid-cols-1 md:grid-cols-2 gap-4" onSubmit={handleCreateUser}>
+          <form className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4" onSubmit={handleCreateUser}>
             <div className="space-y-2">
               <Label>Email</Label>
               <Input value={newEmail} onChange={(e) => setNewEmail(e.target.value)} placeholder="customer@email.com" />
@@ -493,31 +592,37 @@ const Admin = () => {
               </Select>
             </div>
 
-            <div className="space-y-2 md:col-span-2">
+            <div className="space-y-2 md:col-span-2 lg:col-span-2">
               <Label>Hạn sử dụng</Label>
               <Input type="datetime-local" value={newExpiresAt} onChange={(e) => setNewExpiresAt(e.target.value)} />
             </div>
 
-            <div className="md:col-span-2">
-              <Button type="submit" disabled={creating}>{creating ? "Đang tạo..." : "Tạo tài khoản"}</Button>
+            <div className="md:col-span-2 lg:col-span-1 flex items-end">
+              <Button type="submit" disabled={creating} className="w-full lg:w-auto">
+                {creating ? "Đang tạo..." : "Tạo tài khoản"}
+              </Button>
             </div>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="shadow-sm">
         <CardHeader>
           <CardTitle>Danh sách khách hàng</CardTitle>
           <CardDescription>{loadingUsers ? "Đang tải..." : `Tổng ${customerUsers.length} tài khoản khách hàng`}</CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <Input
-              placeholder="Tìm theo email hoặc tên..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="sm:max-w-xs"
-            />
+          <div className="flex flex-col lg:flex-row gap-3 lg:items-center lg:justify-between">
+            <div className="relative w-full lg:max-w-sm">
+              <Search className="h-4 w-4 text-muted-foreground absolute left-3 top-1/2 -translate-y-1/2" />
+              <Input
+                placeholder="Tìm theo email hoặc tên..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-9"
+              />
+            </div>
+            <div className="flex flex-col sm:flex-row gap-3">
             <Select value={filterPlan} onValueChange={setFilterPlan}>
               <SelectTrigger className="sm:w-[150px]">
                 <SelectValue placeholder="Lọc theo gói" />
@@ -531,7 +636,7 @@ const Admin = () => {
               </SelectContent>
             </Select>
             <Select value={filterStatus} onValueChange={setFilterStatus}>
-              <SelectTrigger className="sm:w-[160px]">
+              <SelectTrigger className="sm:w-[180px]">
                 <SelectValue placeholder="Lọc trạng thái" />
               </SelectTrigger>
               <SelectContent>
@@ -541,54 +646,82 @@ const Admin = () => {
                 <SelectItem value="unpaid">Chưa trả phí</SelectItem>
               </SelectContent>
             </Select>
+            </div>
           </div>
+
+          <Separator />
+
           <Table>
             <TableHeader>
               <TableRow>
                 <TableHead>Email</TableHead>
-                <TableHead>Họ tên</TableHead>
+                <TableHead>Thông tin</TableHead>
                 <TableHead>Gói</TableHead>
+                <TableHead>Trạng thái</TableHead>
                 <TableHead>Hạn dùng</TableHead>
-                <TableHead className="w-[320px]">Thao tác</TableHead>
+                <TableHead className="w-[340px]">Thao tác</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {customerUsers.map((user) => (
                 <TableRow key={user.id}>
-                  <TableCell>{user.email}</TableCell>
+                  <TableCell className="font-medium">{user.email}</TableCell>
                   <TableCell>
-                    <Input
-                      value={editingNames[user.id] || ""}
-                      onChange={(e) => setEditingNames((prev) => ({ ...prev, [user.id]: e.target.value }))}
-                      placeholder="Tên khách hàng"
-                    />
+                    <div className="space-y-2">
+                      <Input
+                        value={editingNames[user.id] || ""}
+                        onChange={(e) => setEditingNames((prev) => ({ ...prev, [user.id]: e.target.value }))}
+                        placeholder="Tên khách hàng"
+                      />
+                      <p className="text-xs text-muted-foreground">Cập nhật tên hiển thị của khách hàng</p>
+                    </div>
                   </TableCell>
                   <TableCell>
-                    <Select
-                      value={editingPlans[user.id] || "basic"}
-                      onValueChange={(value) =>
-                        setEditingPlans((prev) => ({ ...prev, [user.id]: value as PlanTier }))
-                      }
+                    <div className="space-y-2">
+                      <Badge variant="outline" className={cn("capitalize", getPlanBadgeClass(editingPlans[user.id] || user.plan))}>
+                        {planLabelMap[editingPlans[user.id] || user.plan]}
+                      </Badge>
+                      <Select
+                        value={editingPlans[user.id] || "basic"}
+                        onValueChange={(value) =>
+                          setEditingPlans((prev) => ({ ...prev, [user.id]: value as PlanTier }))
+                        }
+                      >
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="unpaid">Unpaid</SelectItem>
+                          <SelectItem value="basic">Basic</SelectItem>
+                          <SelectItem value="standard">Standard</SelectItem>
+                          <SelectItem value="premium">Premium</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </TableCell>
+                  <TableCell>
+                    <Badge
+                      variant="outline"
+                      className={cn(
+                        user.isExpired || user.plan === "unpaid"
+                          ? "bg-amber-100 text-amber-700 border-amber-200"
+                          : "bg-emerald-100 text-emerald-700 border-emerald-200"
+                      )}
                     >
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="unpaid">Unpaid</SelectItem>
-                        <SelectItem value="basic">Basic</SelectItem>
-                        <SelectItem value="standard">Standard</SelectItem>
-                        <SelectItem value="premium">Premium</SelectItem>
-                      </SelectContent>
-                    </Select>
+                      {user.isExpired || user.plan === "unpaid" ? "Hết hạn / Unpaid" : "Đang hoạt động"}
+                    </Badge>
                   </TableCell>
                   <TableCell>
-                    <Input
-                      type="datetime-local"
-                      value={editingExpiresAt[user.id] || ""}
-                      onChange={(e) =>
-                        setEditingExpiresAt((prev) => ({ ...prev, [user.id]: e.target.value }))
-                      }
-                    />
+                    <div className="space-y-2 min-w-[180px]">
+                      <Input
+                        type="datetime-local"
+                        value={editingExpiresAt[user.id] || ""}
+                        onChange={(e) =>
+                          setEditingExpiresAt((prev) => ({ ...prev, [user.id]: e.target.value }))
+                        }
+                      />
+                      <p className="text-xs text-muted-foreground">{formatDateTimeVi(user.subscriptionExpiresAt)}</p>
+                    </div>
                   </TableCell>
                   <TableCell>
                     <div className="flex gap-2">
@@ -655,7 +788,7 @@ const Admin = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Hạn dùng</p>
-                  <p className="font-medium">{selectedCustomer.subscriptionExpiresAt ? new Date(selectedCustomer.subscriptionExpiresAt).toLocaleString("vi-VN") : "-"}</p>
+                  <p className="font-medium">{formatDateTimeVi(selectedCustomer.subscriptionExpiresAt)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Trạng thái</p>
@@ -663,11 +796,11 @@ const Admin = () => {
                 </div>
                 <div>
                   <p className="text-muted-foreground">Lần đăng nhập gần nhất</p>
-                  <p className="font-medium">{selectedCustomer.lastSignInAt ? new Date(selectedCustomer.lastSignInAt).toLocaleString("vi-VN") : "-"}</p>
+                  <p className="font-medium">{formatDateTimeVi(selectedCustomer.lastSignInAt)}</p>
                 </div>
                 <div>
                   <p className="text-muted-foreground">Ngày tạo</p>
-                  <p className="font-medium">{selectedCustomer.createdAt ? new Date(selectedCustomer.createdAt).toLocaleString("vi-VN") : "-"}</p>
+                  <p className="font-medium">{formatDateTimeVi(selectedCustomer.createdAt)}</p>
                 </div>
               </div>
             </div>
