@@ -83,6 +83,10 @@ const Admin = () => {
   const [editingExpiresAt, setEditingExpiresAt] = useState<Record<string, string>>({});
   const [editingNames, setEditingNames] = useState<Record<string, string>>({});
 
+  const [searchQuery, setSearchQuery] = useState("");
+  const [filterPlan, setFilterPlan] = useState<string>("all");
+  const [filterStatus, setFilterStatus] = useState<string>("all");
+
   useEffect(() => {
     if (!loading && (!isAuthenticated || role !== "admin")) {
       navigate("/account");
